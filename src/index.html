@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Hello World!</title>
+        <link rel="stylesheet" href="index.css" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    </head>
+    <body>
+        <canvas id="imgOut"></canvas>
+        <button type="button" id="openfile">読み込み</button>
+    </body>
+</html>
+<script>
+
+document.getElementById("openfile").onclick = async ()=>{
+    let result = await window.electron.openFile()
+    console.log(result)
+}
+
+
+
+let videoConfig = {
+    "height": 1080,
+    "width": 1920,
+}
+
+var imgout = document.getElementById("imgOut");
+imgout.height = videoConfig.height;
+imgout.width = videoConfig.width;
+
+// resize window
+function resizeImg() {
+        const dw = videoConfig.width;
+        const dh = videoConfig.height;
+        let bottom_area = 100;
+        let right_area = 100;
+        let rw = 0;let rh = 0;
+        let ww = window.innerWidth-right_area;
+        let wh = window.innerHeight-bottom_area;
+        let csc = 1
+        hcsc = ww/dw; wcsc = wh/dh;
+        if (hcsc>wcsc) {
+            csc = wcsc; rw = (ww - dw*csc)/2;
+        }
+        else {
+            csc = hcsc; rh = (wh - dh*csc)/2;
+        }
+        document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
+        document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
+        document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
+        document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
+        document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
+    };
+window.onresize = resizeImg;
+window.onload = resizeImg;
+</script>
+<script src="index.js"></script>
+<style>
+    body {
+        width: 100vw;
+        overflow: hidden;
+    }
+    #imgOut {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: top left;
+        background-color: white;
+    }
+</style>
