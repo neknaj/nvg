@@ -8,15 +8,27 @@
     </head>
     <body>
         <canvas id="imgOut"></canvas>
-        <button type="button" id="openfile">読み込み</button>
+        <div id="">
+            <input type="range" id="timebar">
+        </div>
+        <div id="underbar">
+            <button type="button" id="openfile">ファイルを選択</button>
+        </div>
     </body>
 </html>
 <script>
+function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
 document.getElementById("openfile").onclick = async ()=>{
     let result = await window.electron.openFile()
-    console.log(result)
 }
+
+window.electron.on("projectFilePathChanged", (arg)=>{
+    console.log(arg,"Selected!",new Date())
+});
+window.electron.on("projectFileUpdate", (arg)=>{
+    console.log(arg,"Changed!",new Date())
+});
 
 
 
@@ -31,27 +43,27 @@ imgout.width = videoConfig.width;
 
 // resize window
 function resizeImg() {
-        const dw = videoConfig.width;
-        const dh = videoConfig.height;
-        let bottom_area = 100;
-        let right_area = 100;
-        let rw = 0;let rh = 0;
-        let ww = window.innerWidth-right_area;
-        let wh = window.innerHeight-bottom_area;
-        let csc = 1
-        hcsc = ww/dw; wcsc = wh/dh;
-        if (hcsc>wcsc) {
-            csc = wcsc; rw = (ww - dw*csc)/2;
-        }
-        else {
-            csc = hcsc; rh = (wh - dh*csc)/2;
-        }
-        document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
-        document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
-        document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
-        document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
-        document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
-    };
+    const dw = videoConfig.width;
+    const dh = videoConfig.height;
+    let bottom_area = 100;
+    let right_area = 100;
+    let rw = 0;let rh = 0;
+    let ww = window.innerWidth-right_area;
+    let wh = window.innerHeight-bottom_area;
+    let csc = 1
+    hcsc = ww/dw; wcsc = wh/dh;
+    if (hcsc>wcsc) {
+        csc = wcsc; rw = (ww - dw*csc)/2;
+    }
+    else {
+        csc = hcsc; rh = (wh - dh*csc)/2;
+    }
+    document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
+    document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
+    document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
+    document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
+    document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
+};
 window.onresize = resizeImg;
 window.onload = resizeImg;
 </script>
@@ -68,4 +80,41 @@ window.onload = resizeImg;
         transform-origin: top left;
         background-color: white;
     }
+    #underbar {
+        border-top: 1px solid white;
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+    }
+    #timebar {
+        position: absolute;
+        width: calc(100% - 100px);
+        bottom: calc(100px - 20px);
+    }
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    background: transparent;
+    cursor: pointer;
+}
+/* Track: Chrome, Safari, Opera, Edge Chromium */
+input[type="range"]::-webkit-slider-runnable-track {
+    background: #b3b3b3;
+    height: 20px;
+    border-radius: 0;
+}
+
+/* Thumb: Chrome, Safari, Opera, Edge Chromium */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 5px;
+    margin-top: 0px;
+    background-color: #4cabe2;
+    border-radius: 0;
+}
+
 </style>

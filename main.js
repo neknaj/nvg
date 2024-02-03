@@ -2,7 +2,7 @@ const { app, Menu, BrowserWindow , ipcMain, dialog} = require('electron');
 const path = require('path');
 const fs = require("fs")
 
-
+function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -35,6 +35,7 @@ app.on('activate', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 
+let filewatcher = {close:()=>{}}
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -54,39 +55,37 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 
 
-    ipcMain.handle('file-open', async (event) => {
+    ipcMain.handle('file-open',async (event)=>{
         // ファイルを選択
         const paths = dialog.showOpenDialogSync(mainWindow, {
-            buttonLabel: '開く',  // 確認ボタンのラベル
-            filters: [
-                { name: 'Neknaj Video Project File', extensions: ['nvpf'] },
-            ],
-            properties:[
-                'openFile',         // ファイルの選択を許可
-                'createDirectory',  // ディレクトリの作成を許可 (macOS)
-            ]
+                buttonLabel: '開く',  // 確認ボタンのラベル
+                filters: [
+                    { name: 'Neknaj Video Project File', extensions: ['nvpf'] },
+                ],
+                properties:[
+                    'openFile',         // ファイルの選択を許可
+                    'createDirectory',  // ディレクトリの作成を許可 (macOS)
+                ]
+            });
+    
+        // キャンセルで閉じた場合
+        if( paths === undefined ){
+            return({status: undefined});
         }
-    );
-
-    // キャンセルで閉じた場合
-    if( paths === undefined ){
-        return({status: undefined});
-    }
-
-    // ファイルの内容を返却
-    try {
-        const path = paths[0];
-        const buff = fs.readFileSync(path);
-
-        return({
-            status: true,
-            path: path,
-            text: buff.toString()
-        });
-    }
-    catch(error) {
-        return({status:false, message:error.message});
-    }
-});
+    
+        // ファイルの内容を返却
+        try {
+            const path = paths[0];
+            const buff = fs.readFileSync(path);
+            event.sender.send("projectFilePathChanged",{path:path})
+            filewatcher.close();
+            filewatcher = fs.watch(path,(ev,fn)=>{
+                event.sender.send("projectFileUpdate",{path:path})}
+            )
+        }
+        catch(error) {
+            return({status:false, message:error.message});
+        }
+    });
 
 };
