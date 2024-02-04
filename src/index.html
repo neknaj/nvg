@@ -32,8 +32,17 @@
                     </div>
                     <div class="resizer_splitter"></div>
                     <div class="resizer_bottom" style="flex-basis: 30%;">
-                        <div id="timeline">
-                            <div id="">
+                        <div id="timelinearea">
+                            <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
+                                <div id="tl_timebar" style="left:calc( 10px *var(--tl-x-scale));"></div>
+                                <div id="tl_objects">
+                                    <div class="object" style="left:calc( 0px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 80px *var(--tl-x-scale))"></div>
+                                    <div class="object" style="left:calc( 530px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 180px *var(--tl-x-scale))"></div>
+                                    <div class="object" style="left:calc( 120px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 200px *var(--tl-x-scale))"></div>
+                                    <div class="object" style="left:calc( 50px *var(--tl-x-scale));top:calc(1 *(30px*var(--tl-y-scale) + 5px));width: calc( 10px *var(--tl-x-scale))"></div>
+                                    <div class="object" style="left:calc( 320px *var(--tl-x-scale));top:calc(1 *(30px*var(--tl-y-scale) + 5px));width: calc( 180px *var(--tl-x-scale))"></div>
+                                    <div class="object" style="left:calc( 50px *var(--tl-x-scale));top:calc(2 *(30px*var(--tl-y-scale) + 5px));width: calc( 80px *var(--tl-x-scale))"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -162,33 +171,40 @@ var imgout = document.getElementById("imgOut");
 
 let imgOutArea = document.getElementById("imgOutArea");
 // resize window
-function resizeImg() {
-    const dw = videoConfig.width;
-    const dh = videoConfig.height;
-    let rw = 0;let rh = 0;
-    parent = imgOutArea.getBoundingClientRect();
-    let bottom_area = 30;
-    let ww = parent.width;
-    let wh = parent.height-bottom_area;
-    let csc = 1
-    hcsc = ww/dw; wcsc = wh/dh;
-    if (hcsc>wcsc) {
-        csc = wcsc; rw = (ww - dw*csc)/2;
+function resize() {
+    {
+        const dw = videoConfig.width;
+        const dh = videoConfig.height;
+        let rw = 0;let rh = 0;
+        parent = imgOutArea.getBoundingClientRect();
+        let bottom_area = 30;
+        let ww = parent.width;
+        let wh = parent.height-bottom_area;
+        let csc = 1
+        hcsc = ww/dw; wcsc = wh/dh;
+        if (hcsc>wcsc) {
+            csc = wcsc; rw = (ww - dw*csc)/2;
+        }
+        else {
+            csc = hcsc; rh = (wh - dh*csc)/2;
+        }
+        document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
+        document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
+        document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
+        document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
+        document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
     }
-    else {
-        csc = hcsc; rh = (wh - dh*csc)/2;
+    {
+        Timeline.style.setProperty('--tl-timebar-height',
+        Math.max(TimelineArea.getBoundingClientRect().height-5)+"px"
+        );
     }
-    document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
-    document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
-    document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
-    document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
-    document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
 };
-window.onresize = resizeImg;
+window.onresize = resize;
 window.onload = ()=>{
     imgout.height = videoConfig.height;
     imgout.width = videoConfig.width;
-    resizeImg();
+    resize();
     SetWindowTitle();
     initEditor();
 };
@@ -211,10 +227,51 @@ function initEditor() {
     });
 }
 </script>
+<script> /* Timeline */
+let TimelineArea = document.getElementById("timelinearea");
+let Timeline = document.getElementById("timeline");
+let TimelineObjects = document.getElementById("tl_objects");
+let TimelineScale = [0,0];
+TimelineArea.addEventListener("wheel",(e)=>{
+    if (e.ctrlKey&&!e.shiftKey) { // x軸の拡大縮小
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {TimelineScale[0]++;}else {TimelineScale[0]--;}
+        if (TimelineScale[0]>20) {TimelineScale[0]=20}
+        else if (TimelineScale[0]<-20) {TimelineScale[0]=-20}
+        console.log(TimelineScale);
+        Timeline.style.setProperty('--tl-x-scale',0.8**TimelineScale[0]);
+        Timeline.style.setProperty('--tl-y-scale',0.9**TimelineScale[1]);
+    }
+    else if (e.ctrlKey&&e.shiftKey) { // y軸の拡大縮小
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {TimelineScale[1]++;}else {TimelineScale[1]--;}
+        if (TimelineScale[1]>10) {TimelineScale[1]=10}
+        else if (TimelineScale[1]<-10) {TimelineScale[1]=-10}
+        console.log(TimelineScale);
+        Timeline.style.setProperty('--tl-x-scale',0.8**TimelineScale[0]);
+        Timeline.style.setProperty('--tl-y-scale',0.9**TimelineScale[1]);
+    }
+    else {
+    }
+})
+let TimeLineTimeBar = document.getElementById("tl_timebar");
+TimeLineTimeBar.addEventListener("mousedown",(e)=>{
+    let resize = (e)=>{
+        let x = e.x/(0.8**TimelineScale[0]);
+        if (x<0) {x=0};
+        TimeLineTimeBar.style = `left:calc( ${x}px *var(--tl-x-scale));`;
+    }
+    document.addEventListener("mousemove",resize,false);
+    document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+});
+
+</script>
 <script src="index.js"></script>
 <script>
-document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resizeImg);})
-document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resizeImg);})
+document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
+document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
 </script>
 <style>
     :root {
@@ -230,6 +287,7 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
         top: calc(26px + 3px);
         transform-origin: top left;
         background-color: white;
+        cursor: crosshair;
     }
     #underbar {
         border-top: 1px solid white;
@@ -277,5 +335,41 @@ input[type="range"]::-webkit-slider-thumb {
 
 .ace_print-margin {
     visibility: hidden !important;
+}
+</style>
+<style>/*timeline*/
+#timelinearea {
+    overflow: auto;
+    height: 100%;
+    z-index: -10;
+    background-color: rgba(102, 115, 175, 0.204);
+}
+#timeline {
+    --tl-y-scale: 1;
+    --tl-x-scale2: 1;
+    --tl-x-scale: var(--tl-x-scale2);
+    max-height:100%;
+    padding: 5px;
+    transform: scale(1);
+    z-index: -10;
+    height: fit-content;
+    & .object {
+        background-color: rgb(152, 138, 206);
+        height: calc(30px *var(--tl-y-scale));
+        margin: 5px;
+        padding: 0;
+        position: absolute;
+        &:hover {
+            background-color: rgb(125, 99, 232);
+        }
+    }
+    & #tl_timebar {
+        background-color: rgb(255, 255, 255);
+        width: 3px;
+        height: var(--tl-timebar-height);
+        position: absolute;
+        z-index: 15;
+        cursor: ew-resize;
+    }
 }
 </style>
