@@ -194,7 +194,7 @@ window.onload = ()=>{
 };
 function initEditor() {
     editor = ace.edit("editor");
-    editor.setTheme("ace/theme/monokai");
+    editor.setTheme("ace/theme/cobalt");
     editor.getSession().setMode("ace/mode/javascript");
     editor.container.addEventListener("keydown",(e)=>{
         if (e.ctrlKey&&e.key=="o") {
@@ -205,7 +205,7 @@ function initEditor() {
         }
     })
     editor.getSession().on('change', function(){
-        if (autosave.value=="on") {
+        if (autosave.checked&&ProjecInfo.path!=null) {
             window.electron.saveFile(ProjecInfo.path,editor.getValue());
         }
     });
