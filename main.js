@@ -86,6 +86,7 @@ function createWindow() {
             event.sender.send("projectFilePathChanged",{path:path});
             filewatcher.close();
             filewatcher = fs.watch(path,(ev,fn)=>{
+                console.log("fs",ev, path);
                 const buff = fs.readFileSync(path,"utf8");
                 if (buff!=beforedata) {
                     event.sender.send("projectFileUpdate",{path:path})

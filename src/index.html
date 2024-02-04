@@ -9,6 +9,7 @@
     </head>
     <body>
         <div id="topbar">
+            <button type="button" id="export">Export</button>
             <button type="button" id="openfile">Open File</button>
             <button type="button" id="savefileas">Save As</button>
             <input type="checkbox" switch id="autosave"><label>Auto Save</label>
@@ -19,7 +20,9 @@
                     <div class="resizer_top" style="flex-basis: 70%;">
                         <div class="resizer_Hcontainer" style="height: 100%;" data-min1="100" data-min2="0">
                             <div class="resizer_left" style="flex-basis: 70%;" id="imgOutArea">
+                                <div id="timebar_padding"></div>
                                 <canvas id="imgOut"></canvas>
+                                <input type="range" id="timebar">
                             </div>
                             <div class="resizer_splitter"></div>
                             <div class="resizer_right" style="flex-basis: 30%;">
@@ -29,7 +32,6 @@
                     </div>
                     <div class="resizer_splitter"></div>
                     <div class="resizer_bottom" style="flex-basis: 30%;">
-                        <input type="range" id="timebar">
                         <div id="timeline">
                             <div id="">
                             </div>
@@ -165,8 +167,9 @@ function resizeImg() {
     const dh = videoConfig.height;
     let rw = 0;let rh = 0;
     parent = imgOutArea.getBoundingClientRect();
+    let bottom_area = 30;
     let ww = parent.width;
-    let wh = parent.height;
+    let wh = parent.height-bottom_area;
     let csc = 1
     hcsc = ww/dw; wcsc = wh/dh;
     if (hcsc>wcsc) {
@@ -197,7 +200,7 @@ function initEditor() {
         if (e.ctrlKey&&e.key=="o") {
             let cursor = editor.selection.getCursor()
             if (ProjecInfo.path!=null) {
-                location.href = ["vscode://file/",ProjecInfo.path,":"+cursor.column+":"+cursor.row].join("");
+                location.href = ["vscode://file/",ProjecInfo.path,":"+cursor.row+":"+cursor.column].join("");
             }
         }
     })
@@ -224,10 +227,9 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
     #imgOut {
         position: absolute;
         left: 2px;
-        top: 3px;
+        top: calc(26px + 3px);
         transform-origin: top left;
         background-color: white;
-        pointer-events: none;
     }
     #underbar {
         border-top: 1px solid white;
@@ -238,9 +240,14 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
         overflow-x: scroll;
         overflow-y: hidden;
     }
+    #timebar_padding {
+        height: 100%;
+    }
     #timebar {
-        width: calc(100% - 100px);
-        bottom: calc(100px - 20px);
+        position: relative;
+        width: 100%;
+        bottom: 20px;
+        left: -5px;
     }
 
 input[type="range"] {
