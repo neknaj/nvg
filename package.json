@@ -18,6 +18,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "ace-builds": "^1.32.5",
     "chokidar": "^3.5.3",
     "electron-squirrel-startup": "^1.0.0"
   },

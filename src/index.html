@@ -2,29 +2,151 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Hello World!</title>
+        <title>Neknaj Video Generator</title>
         <link rel="stylesheet" href="index.css" />
         <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <script src="../node_modules/ace-builds/src/ace.js"></script>
     </head>
     <body>
-        <canvas id="imgOut"></canvas>
-        <div id="">
-            <input type="range" id="timebar">
-        </div>
-        <div id="underbar">
-            <button type="button" id="openfile">ファイルを選択</button>
+        <div class="resizer_Vcontainer" style="height: 100%;" data-min1="200" data-min2="0">
+            <div class="resizer_top" style="flex-basis: 100%;">
+                <div class="resizer_Vcontainer" id="main_container" data-min1="200" data-min2="100">
+                    <div class="resizer_top" style="flex-basis: 70%;">
+                        <div class="resizer_Hcontainer" style="height: 100%;" data-min1="100" data-min2="0">
+                            <div class="resizer_left" style="flex-basis: 70%;" id="imgOutArea">
+                                <canvas id="imgOut"></canvas>
+                            </div>
+                            <div class="resizer_splitter"></div>
+                            <div class="resizer_right" style="flex-basis: 30%;">
+                                <div id="editor" style="height: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="resizer_splitter"></div>
+                    <div class="resizer_bottom" style="flex-basis: 30%;">
+                        <input type="range" id="timebar">
+                        <div id="timeline">
+                            <div id="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="underbar">
+                    <button type="button" id="openfile">ファイルを選択</button>
+                </div>
+            </div>
+            <div class="resizer_splitter"></div>
+            <div class="resizer_bottom" style="flex-basis: 0%;">bottom</div>
         </div>
     </body>
 </html>
+<style>
+.resizer_Vcontainer {
+    display: flex;
+    flex-direction: column;
+    & .resizer_top, & .resizer_bottom {
+        min-height: 0px;
+        height: 100%;
+        overflow: hidden;
+        padding: 3px;
+    }
+    & .resizer_splitter {
+        height: 5px;
+        margin: 2px;
+        width: calc(100% - 4px);
+        border-radius: 3px;
+        flex: none;
+        cursor: row-resize;
+        background-color: #adadad;
+    }
+}
+.resizer_Hcontainer {
+    display: flex;
+    flex-direction: row;
+    & .resizer_left, & .resizer_right {
+        min-width: 0px;
+        width: 100%;
+        overflow: hidden;
+        padding: 3px;
+    }
+    & .resizer_splitter {
+        width: 5px;
+        margin: 2px;
+        height: calc(100% - 4px);
+        border-radius: 3px;
+        flex: none;
+        cursor: col-resize;
+        background-color: #adadad;
+    }
+}
+</style>
 <script>
+function resizer_Vcontainer_addEL (container,frame1Min,frame2Min,resizerW,callback=()=>{}) {
+    console.log(container)
+    console.log(container.querySelector(":scope > .resizer_top"))
+    console.log(container.querySelector(":scope > .resizer_bottom"))
+    container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
+        let resize = (e)=>{
+            let containerRect = container.getBoundingClientRect();
+            let y = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.y-containerRect.y,frame1Min,containerRect.height-resizerW-frame2Min);
+            container.querySelector(":scope > .resizer_top").style.flexBasis = `${y}%`;
+            container.querySelector(":scope > .resizer_bottom").style.flexBasis = `${containerRect.height-resizerW-y}%`;
+            callback();
+        }
+        document.addEventListener("mousemove",resize,false);
+        document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+    });
+}
+function resizer_Hcontainer_addEL (container,frame1Min,frame2Min,resizerW,callback=()=>{}) {
+    container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
+        let resize = (e)=>{
+            let containerRect = container.getBoundingClientRect();
+            let x = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.x-containerRect.x,frame1Min,containerRect.width-resizerW-frame2Min);
+            container.querySelector(":scope > .resizer_left").style.flexBasis = `${x}%`;
+            container.querySelector(":scope > .resizer_right").style.flexBasis = `${containerRect.width-resizerW-x}%`;
+            callback();
+        }
+        document.addEventListener("mousemove",resize,false);
+        document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+    });
+}
+</script>
+<script>
+
+var editor;
+var ProjecInfo = {
+    path: null,
+    name: null,
+}
+
+function SetWindowTitle() {
+    document.title = [
+        "Neknaj Video Generator",
+        data2string(ProjecInfo.name),
+        data2string(ProjecInfo.path),
+    ].join(" ")
+}
+
+function data2string(data) {
+    if (typeof data=="string") {
+        return "\""+data+"\"";
+    }
+    else {
+        return data;
+    }
+}
+
+
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
 document.getElementById("openfile").onclick = async ()=>{
-    let result = await window.electron.openFile()
+    await window.electron.openFile();
 }
 
 window.electron.on("projectFilePathChanged", (arg)=>{
+    ProjecInfo.path = arg.path
     console.log(arg,"Selected!",new Date())
+    SetWindowTitle();
 });
 window.electron.on("projectFileUpdate", (arg)=>{
     console.log(arg,"Changed!",new Date())
@@ -38,18 +160,16 @@ let videoConfig = {
 }
 
 var imgout = document.getElementById("imgOut");
-imgout.height = videoConfig.height;
-imgout.width = videoConfig.width;
 
+let imgOutArea = document.getElementById("imgOutArea");
 // resize window
 function resizeImg() {
     const dw = videoConfig.width;
     const dh = videoConfig.height;
-    let bottom_area = 100;
-    let right_area = 100;
     let rw = 0;let rh = 0;
-    let ww = window.innerWidth-right_area;
-    let wh = window.innerHeight-bottom_area;
+    parent = imgOutArea.getBoundingClientRect();
+    let ww = parent.width;
+    let wh = parent.height;
     let csc = 1
     hcsc = ww/dw; wcsc = wh/dh;
     if (hcsc>wcsc) {
@@ -65,31 +185,61 @@ function resizeImg() {
     document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
 };
 window.onresize = resizeImg;
-window.onload = resizeImg;
+window.onload = ()=>{
+    imgout.height = videoConfig.height;
+    imgout.width = videoConfig.width;
+    resizeImg();
+    SetWindowTitle();
+    initEditor();
+};
+function initEditor() {
+    editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.getSession().setMode("ace/mode/javascript");
+    editor.container.addEventListener("keydown",(e)=>{
+        if (e.ctrlKey&&e.key=="o") {
+            let cursor = editor.selection.getCursor()
+            if (ProjecInfo.path!=null) {
+                location.href = ["vscode://file/",ProjecInfo.path,":"+cursor.column+":"+cursor.row].join("");
+            }
+        }
+    })
+}
 </script>
 <script src="index.js"></script>
+<script>
+document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resizeImg);})
+document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resizeImg);})
+</script>
 <style>
+    :root {
+        color-scheme: dark;
+    }
     body {
         width: 100vw;
         overflow: hidden;
     }
     #imgOut {
         position: absolute;
-        left: 0;
-        top: 0;
+        left: 2px;
+        top: 3px;
         transform-origin: top left;
         background-color: white;
+        pointer-events: none;
     }
     #underbar {
         border-top: 1px solid white;
         width: 100%;
-        position: absolute;
+        position: relative;
         bottom: 0;
+        height: 26px;
     }
     #timebar {
-        position: absolute;
         width: calc(100% - 100px);
         bottom: calc(100px - 20px);
+    }
+    #main_container {
+        height: calc(100% - 26px);
     }
 
 input[type="range"] {
@@ -101,7 +251,7 @@ input[type="range"] {
 }
 /* Track: Chrome, Safari, Opera, Edge Chromium */
 input[type="range"]::-webkit-slider-runnable-track {
-    background: #b3b3b3;
+    background: #383838;
     height: 20px;
     border-radius: 0;
 }
@@ -117,4 +267,7 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: 0;
 }
 
+.ace_print-margin {
+    visibility: hidden !important;
+}
 </style>
