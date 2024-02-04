@@ -8,9 +8,14 @@
         <script src="../node_modules/ace-builds/src/ace.js"></script>
     </head>
     <body>
-        <div class="resizer_Vcontainer" style="height: 100%;" data-min1="200" data-min2="0">
+        <div id="topbar">
+            <button type="button" id="openfile">Open File</button>
+            <button type="button" id="savefileas">Save As</button>
+            <input type="checkbox" switch id="autosave"><label>Auto Save</label>
+        </div>
+        <div class="resizer_Vcontainer" style="height: calc(100% - 26px);" data-min1="200" data-min2="0">
             <div class="resizer_top" style="flex-basis: 100%;">
-                <div class="resizer_Vcontainer" id="main_container" data-min1="200" data-min2="100">
+                <div class="resizer_Vcontainer" style="height: 100%;" data-min1="200" data-min2="100">
                     <div class="resizer_top" style="flex-basis: 70%;">
                         <div class="resizer_Hcontainer" style="height: 100%;" data-min1="100" data-min2="0">
                             <div class="resizer_left" style="flex-basis: 70%;" id="imgOutArea">
@@ -30,9 +35,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div id="underbar">
-                    <button type="button" id="openfile">ファイルを選択</button>
                 </div>
             </div>
             <div class="resizer_splitter"></div>
@@ -139,9 +141,13 @@ function data2string(data) {
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
-document.getElementById("openfile").onclick = async ()=>{
-    await window.electron.openFile();
+document.getElementById("openfile").onclick = ()=>{
+    window.electron.openFile();
 }
+document.getElementById("savefileas").onclick = ()=>{
+    window.electron.saveAs(editor.getValue());
+}
+let autosave = document.getElementById("autosave");
 
 
 
@@ -195,6 +201,11 @@ function initEditor() {
             }
         }
     })
+    editor.getSession().on('change', function(){
+        if (autosave.value=="on") {
+            window.electron.saveFile(ProjecInfo.path,editor.getValue());
+        }
+    });
 }
 </script>
 <script src="index.js"></script>
@@ -224,13 +235,12 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
         position: relative;
         bottom: 0;
         height: 26px;
+        overflow-x: scroll;
+        overflow-y: hidden;
     }
     #timebar {
         width: calc(100% - 100px);
         bottom: calc(100px - 20px);
-    }
-    #main_container {
-        height: calc(100% - 26px);
     }
 
 input[type="range"] {
