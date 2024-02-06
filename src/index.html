@@ -5,7 +5,12 @@
         <title>Neknaj Video Generator</title>
         <link rel="stylesheet" href="index.css" />
         <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <script src="logarea.js"></script>
+        <script src="index.js"></script>
         <script src="../node_modules/ace-builds/src/ace.js"></script>
+        <script src="../node_modules/neknaj-jsonviewer/jsonviewer.js"></script>
+        <link rel="stylesheet" href="../node_modules/neknaj-jsonviewer/jsonviewer.css" />
+        <link rel="stylesheet" href="logarea.css" />
     </head>
     <body>
         <div id="topbar">
@@ -49,7 +54,7 @@
                 </div>
             </div>
             <div class="resizer_splitter"></div>
-            <div class="resizer_bottom" style="flex-basis: 0%;">bottom</div>
+            <div class="resizer_bottom" style="flex-basis: 0%;"><div id="logarea"></div></div>
         </div>
     </body>
 </html>
@@ -57,47 +62,52 @@
 .resizer_Vcontainer {
     display: flex;
     flex-direction: column;
-    & .resizer_top, & .resizer_bottom {
+    & > .resizer_top, & > .resizer_bottom {
         min-height: 0px;
         height: 100%;
         overflow: hidden;
         padding: 3px;
     }
-    & .resizer_splitter {
+    & > .resizer_splitter {
         height: 5px;
         margin: 2px;
         width: calc(100% - 4px);
         border-radius: 3px;
         flex: none;
         cursor: row-resize;
-        background-color: #adadad;
+        z-index: 10;
+        background-color: #7c7c7c;
+    }
+    & > .resizer_splitter:hover {
+        background-color: #acacac;
     }
 }
 .resizer_Hcontainer {
     display: flex;
     flex-direction: row;
-    & .resizer_left, & .resizer_right {
+    & > .resizer_left, & > .resizer_right {
         min-width: 0px;
         width: 100%;
         overflow: hidden;
         padding: 3px;
     }
-    & .resizer_splitter {
+    & > .resizer_splitter {
         width: 5px;
         margin: 2px;
         height: calc(100% - 4px);
         border-radius: 3px;
         flex: none;
         cursor: col-resize;
-        background-color: #adadad;
+        z-index: 10;
+        background-color: #7c7c7c;
+    }
+    & > .resizer_splitter:hover {
+        background-color: #acacac;
     }
 }
 </style>
 <script>
 function resizer_Vcontainer_addEL (container,frame1Min,frame2Min,resizerW,callback=()=>{}) {
-    console.log(container)
-    console.log(container.querySelector(":scope > .resizer_top"))
-    console.log(container.querySelector(":scope > .resizer_bottom"))
     container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
         let resize = (e)=>{
             let containerRect = container.getBoundingClientRect();
@@ -196,7 +206,7 @@ function resize() {
     }
     {
         Timeline.style.setProperty('--tl-timebar-height',
-        Math.max(TimelineArea.getBoundingClientRect().height-5)+"px"
+        Math.max(TimelineArea.getBoundingClientRect().height-13)+"px"
         );
     }
 };
@@ -268,7 +278,6 @@ TimeLineTimeBar.addEventListener("mousedown",(e)=>{
 });
 
 </script>
-<script src="index.js"></script>
 <script>
 document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
 document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
@@ -336,6 +345,28 @@ input[type="range"]::-webkit-slider-thumb {
 .ace_print-margin {
     visibility: hidden !important;
 }
+</style>
+<style> /* scroll bar */
+
+::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+::-webkit-scrollbar-track {
+    border-radius: 3px;
+    background: rgba(255, 250, 205, 0.5);
+}
+::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgba(0, 20, 119, 0.5);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(0, 125, 142);
+}
+::-webkit-scrollbar-corner {
+    display: none;
+}
+
 </style>
 <style>/*timeline*/
 #timelinearea {

@@ -19,8 +19,8 @@
   "license": "MIT",
   "dependencies": {
     "ace-builds": "^1.32.5",
-    "chokidar": "^3.5.3",
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "neknaj-jsonviewer": "^1.1.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.4.2",
