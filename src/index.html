@@ -19,24 +19,26 @@
             <button type="button" id="savefileas">Save As</button>
             <input type="checkbox" switch id="autosave"><label>Auto Save</label>
         </div>
-        <div class="resizer_Vcontainer" style="height: calc(100% - 26px);" data-min1="200" data-min2="0">
-            <div class="resizer_top" style="flex-basis: 100%;">
-                <div class="resizer_Vcontainer" style="height: 100%;" data-min1="200" data-min2="100">
-                    <div class="resizer_top" style="flex-basis: 70%;">
-                        <div class="resizer_Hcontainer" style="height: 100%;" data-min1="100" data-min2="0">
-                            <div class="resizer_left" style="flex-basis: 70%;" id="imgOutArea">
-                                <div id="timebar_padding"></div>
-                                <canvas id="imgOut"></canvas>
-                                <input type="range" id="timebar">
+        <div id="mainarea" class="resizer_Vcontainer" style="height: calc(100% - 26px);">
+            <div class="resizer_content" style="flex-basis: 100%;">
+                <div class="resizer_Vcontainer" style="height: 100%;">
+                    <div class="resizer_content" style="flex-basis: 70%;">
+                        <div class="resizer_Hcontainer" style="height: 100%;">
+                            <div class="resizer_content" style="flex-basis: 70%;" id="imgOutArea">
+                                <div class="imgOutWindow">
+                                    <div id="timebar_padding"></div>
+                                    <canvas id="imgOut"></canvas>
+                                    <input type="range" id="timebar">
+                                </div>
                             </div>
                             <div class="resizer_splitter"></div>
-                            <div class="resizer_right" style="flex-basis: 30%;">
+                            <div class="resizer_content" style="flex-basis: 30%;">
                                 <div id="editor" style="height: 100%"></div>
                             </div>
                         </div>
                     </div>
                     <div class="resizer_splitter"></div>
-                    <div class="resizer_bottom" style="flex-basis: 30%;">
+                    <div class="resizer_content" style="flex-basis: 30%;">
                         <div id="timelinearea">
                             <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
                                 <div id="tl_timebar" style="left:calc( 10px *var(--tl-x-scale));"></div>
@@ -54,15 +56,16 @@
                 </div>
             </div>
             <div class="resizer_splitter"></div>
-            <div class="resizer_bottom" style="flex-basis: 0%;"><div id="logarea"></div></div>
+            <div class="resizer_content" style="flex-basis: 0%;"><div id="logarea"></div></div>
         </div>
+        <div id="subarea" data-open="close" data-loc="left">subarea</div>
     </body>
 </html>
 <style>
 .resizer_Vcontainer {
     display: flex;
     flex-direction: column;
-    & > .resizer_top, & > .resizer_bottom {
+    & > .resizer_content {
         min-height: 0px;
         height: 100%;
         overflow: hidden;
@@ -75,7 +78,6 @@
         border-radius: 3px;
         flex: none;
         cursor: row-resize;
-        z-index: 10;
         background-color: #7c7c7c;
     }
     & > .resizer_splitter:hover {
@@ -85,7 +87,7 @@
 .resizer_Hcontainer {
     display: flex;
     flex-direction: row;
-    & > .resizer_left, & > .resizer_right {
+    & > .resizer_content {
         min-width: 0px;
         width: 100%;
         overflow: hidden;
@@ -98,7 +100,6 @@
         border-radius: 3px;
         flex: none;
         cursor: col-resize;
-        z-index: 10;
         background-color: #7c7c7c;
     }
     & > .resizer_splitter:hover {
@@ -107,26 +108,26 @@
 }
 </style>
 <script>
-function resizer_Vcontainer_addEL (container,frame1Min,frame2Min,resizerW,callback=()=>{}) {
+function resizer_Vcontainer_addEL (container,framesMin,resizerW,callback=()=>{}) {
     container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
         let resize = (e)=>{
             let containerRect = container.getBoundingClientRect();
-            let y = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.y-containerRect.y,frame1Min,containerRect.height-resizerW-frame2Min);
-            container.querySelector(":scope > .resizer_top").style.flexBasis = `${y}%`;
-            container.querySelector(":scope > .resizer_bottom").style.flexBasis = `${containerRect.height-resizerW-y}%`;
+            let y = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.y-containerRect.y,framesMin,containerRect.height-resizerW-framesMin);
+            container.querySelectorAll(":scope > .resizer_content")[0].style.flexBasis = `${y}%`;
+            container.querySelectorAll(":scope > .resizer_content")[1].style.flexBasis = `${containerRect.height-resizerW-y}%`;
             callback();
         }
         document.addEventListener("mousemove",resize,false);
         document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
     });
 }
-function resizer_Hcontainer_addEL (container,frame1Min,frame2Min,resizerW,callback=()=>{}) {
+function resizer_Hcontainer_addEL (container,framesMin,resizerW,callback=()=>{}) {
     container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
         let resize = (e)=>{
             let containerRect = container.getBoundingClientRect();
-            let x = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.x-containerRect.x,frame1Min,containerRect.width-resizerW-frame2Min);
-            container.querySelector(":scope > .resizer_left").style.flexBasis = `${x}%`;
-            container.querySelector(":scope > .resizer_right").style.flexBasis = `${containerRect.width-resizerW-x}%`;
+            let x = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.x-containerRect.x,framesMin,containerRect.width-resizerW-framesMin);
+            container.querySelectorAll(":scope > .resizer_content")[0].style.flexBasis = `${x}%`;
+            container.querySelectorAll(":scope > .resizer_content")[1].style.flexBasis = `${containerRect.width-resizerW-x}%`;
             callback();
         }
         document.addEventListener("mousemove",resize,false);
@@ -279,15 +280,38 @@ TimeLineTimeBar.addEventListener("mousedown",(e)=>{
 
 </script>
 <script>
-document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
-document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,Number(x.dataset.min1),Number(x.dataset.min2),10,resize);})
+document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,0,10,resize);})
+document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,0,10,resize);})
+</script>
+<script> /* keyboard */
+document.addEventListener("keydown",(e)=>{
+    let subarea = document.getElementById("subarea");
+    console.log(e.ctrlKey,e.shiftKey,e.keyCode)
+    if (e.ctrlKey&&(!e.shiftKey)&&e.keyCode==66) {
+        if (subarea.dataset.open=="open") {
+            subarea.dataset.open = "close";
+        }
+        else {
+            subarea.dataset.open = "open";
+        }
+    }
+    if (e.ctrlKey&&e.shiftKey&&e.keyCode==66&&subarea.dataset.open=="open") {
+        console.log("b")
+        if (subarea.dataset.loc=="right") {
+            subarea.dataset.loc = "left";
+        }
+        else {
+            subarea.dataset.loc = "right";
+        }
+    }
+})
 </script>
 <style>
     :root {
         color-scheme: dark;
     }
     body {
-        width: 100vw;
+        width: 100dvw;
         overflow: hidden;
     }
     #imgOut {
@@ -297,6 +321,9 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
         transform-origin: top left;
         background-color: white;
         cursor: crosshair;
+    }
+    .imgOutWindow {
+        height: 100%;
     }
     #underbar {
         border-top: 1px solid white;
@@ -344,6 +371,29 @@ input[type="range"]::-webkit-slider-thumb {
 
 .ace_print-margin {
     visibility: hidden !important;
+}
+</style>
+<style> /* sub area */
+#subarea {
+    position: absolute;
+    background-color: rgb(0, 0, 0);
+    box-shadow: 0px 0px 10px 2px white;
+    top: calc(26px + 3px);
+    width: 30dvw;
+    height: calc(100dvh - 26px - 7px);
+    z-index: 10;
+}
+#subarea[data-open="open"] {
+    visibility: visible;
+}
+#subarea[data-open="close"] {
+    visibility: hidden;
+}
+#subarea[data-loc="left"] {
+    left: 0;
+}
+#subarea[data-loc="right"] {
+    right: 0;
 }
 </style>
 <style> /* scroll bar */
