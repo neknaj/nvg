@@ -11,7 +11,7 @@ body {
 }
 #topbar {
     -webkit-app-region: drag;
-    -webkit-user-select: none;
+    user-select: none;
     height: 24px;
     padding: 2px;
     background: #2b373d;

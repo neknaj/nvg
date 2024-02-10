@@ -1,8 +1,11 @@
+if (process.env.NODE_ENV=="debug") {console.log("Start in debug mode")};
+
 const { app, Menu, BrowserWindow , ipcMain, dialog} = require('electron');
 const path = require('path');
 const fs = require("fs");
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
+
 
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -51,6 +54,7 @@ function createWindow() {
         },
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
+            devTools: app.isPackaged?false:true,
         },
         icon: path.join(__dirname, './src/nvg.png'),
     });
@@ -58,10 +62,12 @@ function createWindow() {
 
     // and load the index.html of the app.
     mainWindow.loadFile(path.join(__dirname, './src/index.html'));
-
-    // Open the DevTools.
-    mainWindow.webContents.openDevTools();
     mainWindow.setMenuBarVisibility(false);
+
+    if (process.env.NODE_ENV=="debug") {
+        // Open the DevTools.
+        mainWindow.webContents.openDevTools();
+    }
 
     
     ipcMain.handle('readFile',async (event,path)=>{

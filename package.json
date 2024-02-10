@@ -1,15 +1,16 @@
 {
   "name": "neknaj_video_generator",
   "product_name": "Neknaj Video Generator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "テキストデータを元に動画を生成するソフト",
   "main": "main.js",
   "scripts": {
     "start": "electron-forge start",
+    "debug": "cross-env NODE_ENV=\"debug\" npm run start",
+    "release": "cross-env NODE_ENV=\"release\" npm run start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "publish": "electron-forge publish"
   },
   "keywords": [],
   "author": {
@@ -23,19 +24,27 @@
     "neknaj-jsonviewer": "^1.1.0"
   },
   "devDependencies": {
+    "electron": "^26.6.8",
+    "electron-forge": "^5.2.4",
     "@electron-forge/cli": "^6.4.2",
     "@electron-forge/maker-deb": "^6.4.2",
     "@electron-forge/maker-rpm": "^6.4.2",
     "@electron-forge/maker-squirrel": "^6.4.2",
     "@electron-forge/maker-zip": "^6.4.2",
     "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
-    "electron": "^26.6.8"
+    "cross-env": "^7.0.3"
   },
   "config": {
     "forge": {
       "packagerConfig": {
         "icon": "./src/nvg.png"
-      }
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "platforms": ["win32"]
+        }
+      ]
     }
   }
 }
