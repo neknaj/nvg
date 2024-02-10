@@ -4,6 +4,7 @@ const fs = require("fs");
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
@@ -41,11 +42,17 @@ let filewatcher = {close:()=>{}};
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        titleBarStyle: 'hidden',
+        titleBarOverlay: true,
+        titleBarOverlay: {
+            color: "#2b373d",
+            symbolColor: "#7996b4",
+            height: 27,
+        },
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
         },
+        icon: path.join(__dirname, './src/nvg.png'),
     });
     // Create the browser window.
 

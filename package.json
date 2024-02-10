@@ -30,5 +30,12 @@
     "@electron-forge/maker-zip": "^6.4.2",
     "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
     "electron": "^26.6.8"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "icon": "./src/nvg.png"
+      }
+    }
   }
 }

@@ -14,10 +14,20 @@
     </head>
     <body>
         <div id="topbar">
-            <button type="button" id="export">Export</button>
-            <button type="button" id="openfile">Open File</button>
-            <button type="button" id="savefileas">Save As</button>
-            <input type="checkbox" switch id="autosave"><label>Auto Save</label>
+            <div>
+                <img src="./nvg.png">
+            </div>
+            <div>
+                <button type="button" id="export">Export</button>
+                <button type="button" id="openfile">Open File</button>
+                <button type="button" id="savefileas">Save As</button>
+                <div>
+                    <input type="checkbox" switch id="autosave"><label>Auto Save</label>
+                </div>
+            </div>
+            <div>
+                <span id="title"></span>
+            </div>
         </div>
         <div id="mainarea" class="resizer_Vcontainer" style="height: calc(100% - 26px);">
             <div class="resizer_content" style="flex-basis: 100%;">
@@ -74,7 +84,7 @@
     & > .resizer_splitter {
         height: 5px;
         margin: 2px;
-        width: calc(100% - 4px);
+        width: calc(100% - 10px);
         border-radius: 3px;
         flex: none;
         cursor: row-resize;
@@ -96,7 +106,7 @@
     & > .resizer_splitter {
         width: 5px;
         margin: 2px;
-        height: calc(100% - 4px);
+        height: calc(100% - 10px);
         border-radius: 3px;
         flex: none;
         cursor: col-resize;
@@ -149,6 +159,10 @@ function SetWindowTitle() {
         data2string(ProjecInfo.name),
         data2string(ProjecInfo.path),
     ].join(" ")
+    document.getElementById("title").innerText = [
+        data2string(ProjecInfo.name),
+        data2string(ProjecInfo.path),
+    ].join("　");
 }
 
 function data2string(data) {
@@ -207,7 +221,7 @@ function resize() {
     }
     {
         Timeline.style.setProperty('--tl-timebar-height',
-        Math.max(TimelineArea.getBoundingClientRect().height-13)+"px"
+            Math.max(TimelineArea.getBoundingClientRect().height-13)+"px"
         );
     }
 };
@@ -314,10 +328,61 @@ document.addEventListener("keydown",(e)=>{
         width: 100dvw;
         overflow: hidden;
     }
+    #topbar {
+        -webkit-app-region: drag;
+        -webkit-user-select: none;
+        height: 24px;
+        padding: 2px;
+        background: #2b373d;
+        z-index: 100;
+        text-align: left;
+        &>div {
+            display: inline-block;
+            width: fit-content;
+            height: 100%;
+        }
+        &>div * {
+            vertical-align: middle;
+            height: 100%;
+        }
+        &>div button {
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.4);
+            border-radius: 5px;
+            font-size: 70%;
+        }
+        &>div span {
+            height: 100%;
+            padding-top: 13px;
+            font-size: 70%;
+            font-family: monospace;
+        }
+        &>div button:hover {
+            background: rgba(165, 163, 163, 0.4);
+        }
+        &>div button, &>div input {
+            -webkit-app-region: no-drag;
+        }
+        &>div>div {
+            display: inline-block;
+        }
+        &>div>div input {
+            height: 100%;
+            margin-right: 0px;
+        }
+        &>div>div label {
+            font-size: 80%;
+        }
+        &>div img {
+            padding-left: 2px;
+            padding-top: 2px;
+            height: calc(100% - 4px);
+        }
+    }
     #imgOut {
         position: absolute;
         left: 2px;
-        top: calc(26px + 3px);
+        top: calc(28px + 10px);
         transform-origin: top left;
         background-color: white;
         cursor: crosshair;
@@ -377,7 +442,7 @@ input[type="range"]::-webkit-slider-thumb {
 #subarea {
     position: absolute;
     background-color: rgb(0, 0, 0);
-    box-shadow: 0px 0px 10px 2px white;
+    box-shadow: inset 0px 0px 10px 2px white;
     top: calc(26px + 3px);
     width: 30dvw;
     height: calc(100dvh - 26px - 7px);
@@ -408,7 +473,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 ::-webkit-scrollbar-thumb {
     border-radius: 3px;
-    background: rgba(0, 20, 119, 0.5);
+    background: rgba(39, 60, 165, 0.5);
 }
 ::-webkit-scrollbar-thumb:hover {
     background: rgb(0, 125, 142);
