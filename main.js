@@ -61,7 +61,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload_index.js'),
             devTools: app.isPackaged?false:true,
         },
-        icon: path.join(__dirname, './src/nvg.png'),
+        icon: path.join(__dirname, './src/nvg.ico'),
     });
     // Create the browser window.
 
