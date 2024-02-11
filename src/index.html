@@ -23,6 +23,7 @@
                 <button type="button" id="export">Export</button>
                 <button type="button" id="openfile">Open File</button>
                 <button type="button" id="savefileas">Save As</button>
+                <button type="button" id="composevideo">Compose Video</button>
                 <div>
                     <input type="checkbox" switch id="autosave"><label>Auto Save</label>
                 </div>
@@ -138,9 +139,11 @@ function data2string(data) {
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
 document.getElementById("openfile").onclick = ()=>{
+    if (exporting) {e.preventDefault();return false;}
     window.electron.openFile();
 }
 document.getElementById("savefileas").onclick = ()=>{
+    if (exporting) {e.preventDefault();return false;}
     window.electron.saveAs(editor.getValue());
 }
 let autosave = document.getElementById("autosave");
@@ -151,6 +154,7 @@ let videoConfig = {
     "height": 1080,
     "width": 1920,
 }
+var exporting = false;
 
 var imgout = document.getElementById("imgOut");
 
@@ -200,6 +204,7 @@ function initEditor() {
    // editor.getSession().setMode("ace/mode/javascript");
     editor.getSession().setMode(new (ace.require("ace/mode/javascript").Mode)())
     editor.container.addEventListener("keydown",(e)=>{
+        if (exporting) {e.preventDefault();return false;}
         if (e.ctrlKey&&e.key=="o") {
             let cursor = editor.selection.getCursor()
             if (ProjecInfo.path!=null) {
@@ -251,6 +256,7 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
 </script>
 <script> /* keyboard */
 document.onkeydown = (e)=>{
+    if (exporting) {e.preventDefault();return false;}
     let subarea = document.getElementById("subarea");
     console.log(e.ctrlKey,e.shiftKey,e.keyCode)
     if (e.ctrlKey&&(!e.shiftKey)&&e.keyCode==66) {
@@ -291,14 +297,17 @@ let TimeLineTimeBar = document.querySelector("#tl_timebar");
 let playbutton = document.querySelector("#playbutton");
 let VideoFPS = 30;
 seekbar.addEventListener("input",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
     currentFrame = Number(seekbar.value);
     updatePlayCtrl();
 })
 seekbar.addEventListener("change",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
     currentFrame = Number(seekbar.value);
     updatePlayCtrl();
 })
 TimeLineTimeBar.addEventListener("mousedown",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
     let resize = (e)=>{
         let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
         let x = ex/(0.8**TimelineScale[0]);
@@ -313,17 +322,18 @@ function Previewzero() {
     currentFrame = 0;
     updatePlayCtrl();
 }
-function updatePlayCtrl() {
-    if (currentFrame<0) {currentFrame=0};
-    if (currentFrame>Number(seekbar.max)) {currentFrame=Number(seekbar.max)};
-    currentFrame = Number(currentFrame);
-    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale) + 5px);`;
-    seekbar.value = currentFrame;
-    currentFrameShow.innerText = currentFrame;
+function updatePlayCtrl(f=currentFrame) {
+    if (f<0) {f=0};
+    if (f>Number(seekbar.max)) {f=Number(seekbar.max)};
+    f = Number(f);
+    TimeLineTimeBar.style = `left:calc( ${f}px *var(--tl-x-scale) + 5px);`;
+    seekbar.value = f;
+    currentFrameShow.innerText = f;
 }
 
 var playInterval = false;
 playbutton.addEventListener("click",()=>{
+    if (exporting) {e.preventDefault();return false;}
     TimelineArea.focus();
     togglePlayPreview();
 })
@@ -335,9 +345,40 @@ function togglePlayPreview() {
         playInterval = false;
     }
 }
+
+document.getElementById("composevideo").addEventListener("click",()=>{
+    window.electron.composeVideo("echo hello")
+})
+document.getElementById("export").addEventListener("click",async ()=>{
+    if (exporting) {e.preventDefault();return false;}
+    exporting = true;
+    editor.setReadOnly(true);
+    export_frame(0);
+})
+async function export_frame(i=0) {
+    await drawFrame(i);
+    updatePlayCtrl(i);
+    imgout.toBlob((blob)=>{
+        let reader = new FileReader();
+        reader.readAsArrayBuffer(blob);
+        reader.onload = ()=> {
+            var buffer = reader.result;
+            console.log("export",i);
+            window.electron.exportFrame(i,new Uint8Array(buffer));
+        }
+    });
+    if (i<lastObjFrame-1) {
+        setTimeout(export_frame,3,i+1);
+    }
+    else {
+        editor.setReadOnly(false);
+        exporting = false;
+    }
+}
 async function makeCache() {
+    if (exporting) {setTimeout(makeCache,2000);return false;}
     let flag = false;
-    i = currentFrame+2;
+    i = currentFrame+10 ;
     while (i<lastObjFrame) {
         if (TLcache[i]==null) {
             flag = true;
@@ -346,30 +387,34 @@ async function makeCache() {
         }
         i++;
     }
+    if (!flag) {
+        i = 0;
+        while (i<lastObjFrame) {
+            if (TLcache[i]==null) {
+                flag = true;
+                await cacheFrame(i);
+                break; 
+            }
+            i++;
+        }
+    }
     if (flag) {
         setTimeout(makeCache,0)
     }
 }
 async function playPreview() {
+    if (exporting) {setTimeout(playPreview,2000);return false;}
     const startTime = performance.now();
     updatePlayCtrl();
     let m = await drawFrame(currentFrame);
-    if (m==1) {
-        if (playInterval) {
-            setTimeout(playPreview,1);
-        }
-        else {
-            setTimeout(playPreview,100);
-        }
+    const endTime = performance.now();
+    if (playInterval) {
+        let passedFrame = Math.floor((endTime-startTime)/(1000/VideoFPS)+0.1)
+        setTimeout(playPreview,(1000/VideoFPS)-((endTime-startTime)%(1000/VideoFPS)));
+        currentFrame+=passedFrame
     }
     else {
-        const endTime = performance.now();
-        if (playInterval) {
-            setTimeout(playPreview,(1000/VideoFPS)-(endTime-startTime));
-        }
-        else {
-            setTimeout(playPreview,100);
-        }
+        setTimeout(playPreview,100);
     }
     if (playInterval) {
         currentFrame++;
@@ -381,20 +426,29 @@ setTimeout(playPreview,100)
 </script>
 <script> // TimeLine Objects
 
+function linerinterpolation(p,v1,v2) {
+    return (1-p)*v1+p*v2
+}
+
 var obj_text = {
-    length: (l,t,x,y,s)=>{return l},
-    text: (l,t,x,y,s)=>{return "text: "+t},
-    textcolor: (l,t,x,y,s)=>{return "#000"},
-    color: (l,t,x,y,s)=>{return "#ff5575"},
-    getframe: async (af,rf,len,l,t,x,y,s)=>{
+    length: (l,t,x,y,s,fin,fout)=>{return l},
+    text: (l,t,x,y,s,fin,fout)=>{return "text: "+t},
+    textcolor: (l,t,x,y,s,fin,fout)=>{return "#000"},
+    color: (l,t,x,y,s,fin,fout)=>{return "#ff5575"},
+    getframe: async (af,rf,len,l,t,x,y,s,fin,fout)=>{
         let co = document.createElement("canvas");
         co.height = 1080;
         co.width = 1920;
         let ctx = co.getContext("2d");
+        if (rf<fin) {
+            ctx.globalAlpha = linerinterpolation(rf/fin,0,1)
+        }
+        if (rf>=len-fout) {
+            ctx.globalAlpha = linerinterpolation((len-rf-1)/(fout),0,1)
+        }
         ctx.font = `${s}px serif`;
+        ctx.fillStyle = "white";
         ctx.fillText(t,x,y);
-        let image = new Image();
-        image.src = co.toDataURL();
         return await canvas2image(co);
     },
 }
@@ -413,7 +467,6 @@ var obj_rect = {
         ctx.rect(x,y,w,h);
         ctx.fill();
         ctx.stroke();
-
         return await canvas2image(co);
     },
 }
@@ -429,12 +482,11 @@ var obj_time = {
         let ctx = co.getContext("2d");
         ctx.font = `${s}px serif`;
         let padding = (num,len)=>{
-            return Array(len).join("0").slice(-len)+num;
+            return (Array(len).join("0")+num).slice(-len);
         }
         let second = Math.floor(af/VideoFPS*100)/100;
+        ctx.fillStyle = "white";
         ctx.fillText(second,x,y);
-        let image = new Image();
-        image.src = co.toDataURL();
         return await canvas2image(co);
     },
 }
@@ -452,12 +504,12 @@ async function canvas2image(canvas){
 }
 
 var timeline = [
-    [obj_rect,100,800,30,800,300,"#ff5"],
-    [obj_text,0,500,"HELLO!!",50,900,200],
-    [obj_rect,120,500,90,500,700,"#f06"],
-    [obj_time,80,500,30,500,100,"#f06"],
-    [obj_text,10,1000,"Neknaj Video Generator",300,600,100],
-    [obj_text,30,1200,"bem130",1400,600,70],
+    [obj_rect,100,100,30,800,300,"#ff5"],
+    [obj_text,0,120,"HELLO!!",50,900,200,50,50],
+    [obj_rect,120,100,90,500,700,"#f06"],
+    [obj_time,80,130,30,500,100,"#f06"],
+    [obj_text,10,400,"Neknaj Video Generator",300,600,100,50,50],
+    [obj_text,30,300,"bem130",1400,600,70,50,50],
 ]
 let timeLineTmp;
 let lastObjFrame;
@@ -483,6 +535,9 @@ let drawFrame = async (f)=>{
             bufco.id = imgout.id;
 
             let ctx = bufco.getContext("2d");
+            ctx.fillStyle = "black";
+            ctx.rect(0,0,1920,1080);
+            ctx.fill();
             for (let obj of objects) {
                 let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
                 ctx.drawImage(objf,0,0);
@@ -517,6 +572,9 @@ let cacheFrame = async (f)=>{
             cachebufco.id = imgout.id;
 
             let ctx = cachebufco.getContext("2d");
+            ctx.fillStyle = "black";
+            ctx.rect(0,0,1920,1080);
+            ctx.fill();
             for (let obj of objects) {
                 let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
                 ctx.drawImage(objf,0,0);

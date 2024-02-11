@@ -4,10 +4,9 @@ const { app, Menu, BrowserWindow , ipcMain, dialog, shell, MessageChannelMain} =
 const path = require('path');
 const fs = require("fs");
 const url = require("url");
+const {exec} = require("child_process");
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
-
-
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -44,6 +43,13 @@ app.on('activate', () => {
 let beforedata = null;
 let filewatcher = {close:()=>{}};
 let BWidcounter = 0;
+let fileName = null;
+let folderPath = null;
+
+
+function paddingStr(num,len) {
+    return (Array(len).join("0")+num).slice(-len);
+}
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -113,14 +119,18 @@ function createWindow() {
         beforedata = null;
         // ファイルの内容を返却
         try {
-            const path = paths[0].replace(/\\/g,"/");
-            mainWindow.webContents.send("projectFilePathChanged",{path:path});
+            const _path = paths[0].replace(/\\/g,"/");
+            mainWindow.webContents.send("projectFilePathChanged",{path:_path});
+            fileName = path.parse(_path).name;
+            folderPath = path.join(path.dirname(_path),fileName);
+            fs.mkdir(path.join(folderPath,"frames"),{recursive:true},(err)=>{if(err){console.warn(err)}});
+            fs.mkdir(path.join(folderPath,"resource"),{recursive:true},(err)=>{if(err){console.warn(err)}});
             filewatcher.close();
             filewatcher = fs.watch(path,(ev,fn)=>{
-                console.log("fs",ev, path);
-                const buff = fs.readFileSync(path,"utf8");
+                console.log("fs",ev, _path);
+                const buff = fs.readFileSync(_path,"utf8");
                 if (buff!=beforedata) {
-                    mainWindow.webContents.send("projectFileUpdate",{path:path})
+                    mainWindow.webContents.send("projectFileUpdate",{path:_path})
                 }
             });
         }
@@ -146,9 +156,13 @@ function createWindow() {
         }
         beforedata = null;
         try {
-            const path = paths.replace(/\\/g,"/");
-            fs.writeFile(path,data,(err)=>{console.log("done",err)});
-            mainWindow.webContents.send("projectFilePathChanged",{path:path});
+            const _path = paths.replace(/\\/g,"/");
+            fs.writeFile(path_,data,(err)=>{console.log("done",err)});
+            fileName = path.parse(_path).name;
+            folderPath = path.join(path.dirname(_path),fileName);
+            fs.mkdir(path.join(folderPath,"frames"),{recursive:true},(err)=>{if(err){console.warn(err)}});
+            fs.mkdir(path.join(folderPath,"resource"),{recursive:true},(err)=>{if(err){console.warn(err)}});
+            mainWindow.webContents.send("projectFilePathChanged",{path:_path});
         }
         catch(error) {
             return({status:false, message:error.message});
@@ -157,6 +171,11 @@ function createWindow() {
     ipcMain.handle('saveFile',async (event,path,data)=>{
         beforedata = data;
         fs.writeFileSync(path,data);
+    });
+    ipcMain.handle('exportFrame',async (event,frame,data)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        //console.log(frame,data)
+        fs.writeFileSync(path.join(folderPath,"./frames/",paddingStr(frame,6)+".png"),data);
     });
     ipcMain.on('evalBW',async (event,program,env)=>{
         BWidcounter++;
@@ -183,6 +202,21 @@ function createWindow() {
             backgroundWindow.close();
         })
         return;
+    });
+    ipcMain.on('composeVideo',async (event,program,env)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        exec(`ffmpeg -framerate 30 -i ./frames/%06d.png -r 30 ${fileName}.mp4 -y`,{cwd: path.join(folderPath)}, (err, stdout, stderr) => {
+            const viewWindow = new BrowserWindow({
+                show: true,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    devTools: false,
+                },
+                autoHideMenuBar: true,
+            });
+            viewWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(folderPath,fileName+".mp4")}));
+        })
     });
 
 };

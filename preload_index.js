@@ -13,10 +13,16 @@ contextBridge.exposeInMainWorld("electron", {
     saveAs: (data) => {
         return ipcRenderer.invoke('saveAs',data)
     },
+    exportFrame: (frame,data) => {
+        return ipcRenderer.invoke('exportFrame',frame,data)
+    },
     on: (channel, func) => {
         ipcRenderer.on(channel, (event, ...args) => func(...args));
     },
     evalBW: (program,env) => {
         return ipcRenderer.send('evalBW',program,env)
+    },
+    composeVideo: (command) => {
+        return ipcRenderer.send('composeVideo',command)
     },
 })
