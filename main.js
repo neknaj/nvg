@@ -1,8 +1,9 @@
 if (process.env.NODE_ENV=="debug") {console.log("Start in debug mode")};
 
-const { app, Menu, BrowserWindow , ipcMain, dialog} = require('electron');
+const { app, Menu, BrowserWindow , ipcMain, dialog, MessageChannelMain} = require('electron');
 const path = require('path');
 const fs = require("fs");
+const url = require("url");
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
@@ -42,9 +43,11 @@ app.on('activate', () => {
 
 let beforedata = null;
 let filewatcher = {close:()=>{}};
+let BWidcounter = 0;
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
+        show: false,
         titleBarStyle: 'hidden',
         titleBarOverlay: true,
         titleBarOverlay: {
@@ -53,21 +56,28 @@ function createWindow() {
             height: 27,
         },
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload_index.js'),
             devTools: app.isPackaged?false:true,
         },
         icon: path.join(__dirname, './src/nvg.png'),
     });
     // Create the browser window.
 
-    // and load the index.html of the app.
-    mainWindow.loadFile(path.join(__dirname, './src/index.html'));
+    mainWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(__dirname,"./src/index.html"),query:{}}));
     mainWindow.setMenuBarVisibility(false);
 
     if (process.env.NODE_ENV=="debug") {
-        // Open the DevTools.
         mainWindow.webContents.openDevTools();
     }
+
+    mainWindow.once("ready-to-show",()=>{
+        mainWindow.show();
+    })
+    mainWindow.on("closed",()=>{
+        app.quit();
+    })
 
     
     ipcMain.handle('readFile',async (event,path)=>{
@@ -96,13 +106,13 @@ function createWindow() {
         // ファイルの内容を返却
         try {
             const path = paths[0].replace(/\\/g,"/");
-            event.sender.send("projectFilePathChanged",{path:path});
+            mainWindow.webContents.send("projectFilePathChanged",{path:path});
             filewatcher.close();
             filewatcher = fs.watch(path,(ev,fn)=>{
                 console.log("fs",ev, path);
                 const buff = fs.readFileSync(path,"utf8");
                 if (buff!=beforedata) {
-                    event.sender.send("projectFileUpdate",{path:path})
+                    mainWindow.webContents.send("projectFileUpdate",{path:path})
                 }
             });
         }
@@ -130,7 +140,7 @@ function createWindow() {
         try {
             const path = paths.replace(/\\/g,"/");
             fs.writeFile(path,data,(err)=>{console.log("done",err)});
-            event.sender.send("projectFilePathChanged",{path:path});
+            mainWindow.webContents.send("projectFilePathChanged",{path:path});
         }
         catch(error) {
             return({status:false, message:error.message});
@@ -139,6 +149,32 @@ function createWindow() {
     ipcMain.handle('saveFile',async (event,path,data)=>{
         beforedata = data;
         fs.writeFileSync(path,data);
+    });
+    ipcMain.on('evalBW',async (event,program,env)=>{
+        BWidcounter++;
+        const backgroundWindow = new BrowserWindow({
+            show: false,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload_background.js'),
+                devTools: app.isPackaged?false:true,
+            },
+            icon: path.join(__dirname, './src/nvg.png'),
+        });
+        backgroundWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(__dirname,"./src/background.html"),query:{bwid:BWidcounter}}));
+        backgroundWindow.setMenuBarVisibility(false);
+        if (process.env.NODE_ENV=="debug") {
+            backgroundWindow.webContents.openDevTools();
+        }
+        ipcMain.handleOnce("winloadBW"+BWidcounter,()=>{
+            backgroundWindow.webContents.send("evalBW",program,env);
+        })
+        ipcMain.once("resultBW"+BWidcounter,async (event,object)=>{
+            mainWindow.webContents.send("resultBW",object);
+            backgroundWindow.close();
+        })
+        return;
     });
 
 };

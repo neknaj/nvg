@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Neknaj Video Generator</title>
+        <link rel="stylesheet" href="index.css" />
+    </head>
+    <body>
+        <canvas id="imgOut"></canvas>
+    </body>
+</html>
+<script>
+
+window.onload = ()=>{
+    window.electron.winloadBW();
+}
+window.electron.on("evalBW", async (program,env)=>{
+    {
+        /*
+            処理
+        */
+        result = 0
+        for (let i=0;i<2000000000;i++) { // めっちゃ重い処理
+            result += 1
+        }
+    }
+    window.electron.resultBW(result); // 結果を返却
+    return;
+});
+
+
+
+</script>
