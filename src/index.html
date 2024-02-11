@@ -33,13 +33,17 @@
         <div id="mainarea" class="resizer_Vcontainer" style="height: calc(100% - 26px);">
             <div class="resizer_content" style="flex-basis: 100%;">
                 <div class="resizer_Vcontainer" style="height: 100%;">
-                    <div class="resizer_content" style="flex-basis: 70%;">
+                    <div class="resizer_content" style="flex-basis: 80%;">
                         <div class="resizer_Hcontainer" style="height: 100%;">
                             <div class="resizer_content" style="flex-basis: 70%;" id="imgOutArea">
                                 <div class="imgOutWindow">
                                     <div id="timebar_padding"></div>
                                     <canvas id="imgOut" style="transform: scale(0,0);"></canvas>
-                                    <input type="range" id="timebar">
+                                    <div id="timebar">
+                                        <input id="playbutton" type="radio"><label for="playbutton" id="playbuttonlabel">&#x23ef;</label>
+                                        <span id="currentFrame">0</span>
+                                        <input type="range" id="seekbar" value="0" min="0" max="1000">
+                                    </div>
                                 </div>
                             </div>
                             <div class="resizer_splitter"></div>
@@ -49,7 +53,7 @@
                         </div>
                     </div>
                     <div class="resizer_splitter"></div>
-                    <div class="resizer_content" style="flex-basis: 30%;">
+                    <div class="resizer_content" style="flex-basis: 20%;">
                         <div id="timelinearea">
                             <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
                                 <div id="tl_timebar" style="left:calc( 10px *var(--tl-x-scale));"></div>
@@ -187,6 +191,7 @@ window.onload = ()=>{
     resize();
     SetWindowTitle();
     initEditor();
+    Previewzero();
 };
 function initEditor() {
     editor = ace.edit("editor");
@@ -237,16 +242,6 @@ TimelineArea.addEventListener("wheel",(e)=>{
     else {
     }
 })
-let TimeLineTimeBar = document.getElementById("tl_timebar");
-TimeLineTimeBar.addEventListener("mousedown",(e)=>{
-    let resize = (e)=>{
-        let x = e.x/(0.8**TimelineScale[0]);
-        if (x<0) {x=0};
-        TimeLineTimeBar.style = `left:calc( ${x}px *var(--tl-x-scale));`;
-    }
-    document.addEventListener("mousemove",resize,false);
-    document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
-});
 
 </script>
 <script>
@@ -254,7 +249,7 @@ document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontaine
 document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,0,10,resize);})
 </script>
 <script> /* keyboard */
-document.addEventListener("keydown",(e)=>{
+document.onkeydown = (e)=>{
     let subarea = document.getElementById("subarea");
     console.log(e.ctrlKey,e.shiftKey,e.keyCode)
     if (e.ctrlKey&&(!e.shiftKey)&&e.keyCode==66) {
@@ -266,7 +261,6 @@ document.addEventListener("keydown",(e)=>{
         }
     }
     if (e.ctrlKey&&e.shiftKey&&e.keyCode==66&&subarea.dataset.open=="open") {
-        console.log("b")
         if (subarea.dataset.loc=="right") {
             subarea.dataset.loc = "left";
         }
@@ -274,5 +268,64 @@ document.addEventListener("keydown",(e)=>{
             subarea.dataset.loc = "right";
         }
     }
+    if (e.keyCode==32&&!editor.isFocused()) {
+        playPreview();
+    }
+}
+</script>
+<script>
+
+var currentFrame = 0;
+let seekbar = document.querySelector("#seekbar");
+let currentFrameShow = document.querySelector("#currentFrame");
+let TimeLineTimeBar = document.querySelector("#tl_timebar");
+let playbutton = document.querySelector("#playbutton");
+seekbar.addEventListener("input",()=>{
+    currentFrame = seekbar.value;
+    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
+    currentFrameShow.innerText = currentFrame;
 })
+TimeLineTimeBar.addEventListener("mousedown",(e)=>{
+    let resize = (e)=>{
+        let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
+        let x = ex/(0.8**TimelineScale[0]);
+        if (x<0) {x=0};
+        currentFrame = Math.floor(x);
+        TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
+        seekbar.value = currentFrame;
+        currentFrameShow.innerText = currentFrame;
+    }
+    document.addEventListener("mousemove",resize,false);
+    document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+});
+
+function play() {
+    currentFrame++;
+    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
+    seekbar.value = currentFrame;
+    currentFrameShow.innerText = currentFrame;
+}
+function Previewzero() {
+    currentFrame = 0;
+    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
+    seekbar.value = currentFrame;
+    currentFrameShow.innerText = currentFrame;
+}
+
+var playInterval = null;
+playbutton.addEventListener("click",()=>{
+    TimelineArea.focus();
+    playPreview();
+})
+function playPreview() {
+    if (playInterval==null) {
+        playInterval = setInterval(play,33);
+    }
+    else {
+        clearInterval(playInterval);
+        playInterval = null;
+    }
+}
+
+
 </script>

@@ -83,36 +83,59 @@ body {
 #timebar_padding {
     height: 100%;
 }
+
 #timebar {
+    user-select: none;
     position: relative;
     width: 100%;
     bottom: 20px;
     left: -5px;
+    padding-left: 5px;
+}
+#playbutton {
+    display: none;
+}
+#playbuttonlabel {
+    position: relative;
+    display: inline-block;
+    height: 100%;
+    font-size: 90%;
+    padding: 0px;
+    bottom: 2px;
+    border: 0px;
+    border-radius: 5px;
+}
+#seekbar {
+    position: relative;
+    display: inline-block;
+    width: calc(100% - 100px);
+}
+#currentFrame {
+    display: inline-block;
+    width: 50px;
 }
 
 input[type="range"] {
--webkit-appearance: none;
-appearance: none;
-outline: none;
-background: transparent;
-cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    background: transparent;
+    cursor: pointer;
 }
-/* Track: Chrome, Safari, Opera, Edge Chromium */
 input[type="range"]::-webkit-slider-runnable-track {
-background: #383838;
-height: 20px;
-border-radius: 0;
+    background: #383838;
+    height: 20px;
+    border-radius: 0;
 }
 
-/* Thumb: Chrome, Safari, Opera, Edge Chromium */
 input[type="range"]::-webkit-slider-thumb {
--webkit-appearance: none;
-appearance: none;
-height: 20px;
-width: 5px;
-margin-top: 0px;
-background-color: #4cabe2;
-border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 10px;
+    margin-top: 0px;
+    background-color: #4cabe2;
+    border-radius: 0;
 }
 
 .ace_print-margin {
