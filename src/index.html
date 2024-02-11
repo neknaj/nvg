@@ -353,7 +353,9 @@ TimeLineTimeBar.addEventListener("mousedown",(e)=>{
     let resize = (e)=>{
         let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
         let x = ex/(0.8**TimelineScale[0]);
-        currentFrame = x;
+        if (x<0) {x=0};
+        if (x>=Number(seekbar.max)) {x=Number(seekbar.max)};
+        currentFrame = x; 
         updatePlayCtrl();
     }
     document.addEventListener("mousemove",resize,false);
@@ -366,7 +368,7 @@ function Previewzero() {
 }
 function updatePlayCtrl(f=currentFrame) {
     if (f<0) {f=0};
-    if (f>Number(seekbar.max)) {f=Number(seekbar.max)};
+    if (f>=Number(seekbar.max)) {f=Number(seekbar.max)};
     f = Number(f);
     TimeLineTimeBar.style = `left:calc( ${f}px *var(--tl-x-scale) + 5px);`;
     seekbar.value = f;
