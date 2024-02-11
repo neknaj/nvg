@@ -25,7 +25,7 @@
                 <button type="button" id="savefileas">Save As</button>
                 <button type="button" id="composevideo">Compose Video</button>
                 <div>
-                    <input type="checkbox" switch id="autosave"><label>Auto Save</label>
+                    <input type="checkbox" switch id="autosave"><label for="autosave">Auto Save</label>
                 </div>
             </div>
             <div>
@@ -60,12 +60,6 @@
                             <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
                                 <div id="tl_timebar" style="left:calc( 10px *var(--tl-x-scale));"></div>
                                 <div id="tl_objects">
-                                    <div class="object" style="left:calc( 0px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 80px *var(--tl-x-scale))"></div>
-                                    <div class="object" style="left:calc( 530px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 180px *var(--tl-x-scale))"></div>
-                                    <div class="object" style="left:calc( 120px *var(--tl-x-scale));top:calc(0 *(30px*var(--tl-y-scale) + 5px));width: calc( 200px *var(--tl-x-scale))"></div>
-                                    <div class="object" style="left:calc( 50px *var(--tl-x-scale));top:calc(1 *(30px*var(--tl-y-scale) + 5px));width: calc( 10px *var(--tl-x-scale))"></div>
-                                    <div class="object" style="left:calc( 320px *var(--tl-x-scale));top:calc(1 *(30px*var(--tl-y-scale) + 5px));width: calc( 180px *var(--tl-x-scale))"></div>
-                                    <div class="object" style="left:calc( 50px *var(--tl-x-scale));top:calc(2 *(30px*var(--tl-y-scale) + 5px));width: calc( 80px *var(--tl-x-scale))"></div>
                                 </div>
                             </div>
                         </div>
@@ -75,7 +69,55 @@
             <div class="resizer_splitter"></div>
             <div class="resizer_content" style="flex-basis: 0%;"><div id="logarea"></div></div>
         </div>
-        <div id="subarea" data-open="close" data-loc="left">subarea</div>
+        <div id="subarea" data-open="close" data-loc="left">
+            <div class="resizer_Vcontainer" style="height: 100%;">
+                <div class="resizer_content" style="flex-basis: 30%;">
+                    <div id="partialexport">
+                        <h3>Partial export</h3>
+                        <table>
+                            <tr>
+                                <td>
+                                    <label for="export_range_start">start:</label>
+                                </td>
+                                <td>
+                                    <input type="number" id="export_range_start" min="0">
+                                </td>
+                                <td>
+                                    <button>first frame</button>
+                                </td>
+                                <td>
+                                    <button>current playback position</button>
+                                </td>
+                                <td>
+                                    <button>last frame</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label for="export_range_end">end:</label>
+                                </td>
+                                <td>
+                                    <input type="number" id="export_range_end" min="0">
+                                </td>
+                                <td>
+                                    <button>first frame</button>
+                                </td>
+                                <td>
+                                    <button>current playback position</button>
+                                </td>
+                                <td>
+                                    <button>last frame</button>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="resizer_splitter"></div>
+                <div class="resizer_content" style="flex-basis: 70%;">
+                    2
+                </div>
+            </div>
+        </div>
     </body>
 </html>
 <script>
@@ -256,7 +298,6 @@ document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontaine
 </script>
 <script> /* keyboard */
 document.onkeydown = (e)=>{
-    if (exporting) {e.preventDefault();return false;}
     let subarea = document.getElementById("subarea");
     console.log(e.ctrlKey,e.shiftKey,e.keyCode)
     if (e.ctrlKey&&(!e.shiftKey)&&e.keyCode==66) {
@@ -275,6 +316,7 @@ document.onkeydown = (e)=>{
             subarea.dataset.loc = "right";
         }
     }
+    if (exporting) {e.preventDefault();return false;}
     if (e.keyCode==32&&!editor.isFocused()) {
         togglePlayPreview();
     }
@@ -347,7 +389,7 @@ function togglePlayPreview() {
 }
 
 document.getElementById("composevideo").addEventListener("click",()=>{
-    window.electron.composeVideo("echo hello")
+    window.electron.composeVideo()
 })
 document.getElementById("export").addEventListener("click",async ()=>{
     if (exporting) {e.preventDefault();return false;}

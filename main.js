@@ -203,7 +203,7 @@ function createWindow() {
         })
         return;
     });
-    ipcMain.on('composeVideo',async (event,program,env)=>{
+    ipcMain.on('composeVideo',async (event)=>{
         if (folderPath==null) {console.warn("folder not selected");return;}
         exec(`ffmpeg -framerate 30 -i ./frames/%06d.png -r 30 ${fileName}.mp4 -y`,{cwd: path.join(folderPath)}, (err, stdout, stderr) => {
             const viewWindow = new BrowserWindow({

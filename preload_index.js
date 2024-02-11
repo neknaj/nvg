@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld("electron", {
     evalBW: (program,env) => {
         return ipcRenderer.send('evalBW',program,env)
     },
-    composeVideo: (command) => {
-        return ipcRenderer.send('composeVideo',command)
+    composeVideo: () => {
+        return ipcRenderer.send('composeVideo')
     },
 })

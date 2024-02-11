@@ -151,8 +151,9 @@ visibility: hidden !important;
     box-shadow: inset 0px 0px 10px 2px white;
     top: calc(26px + 3px);
     width: 30dvw;
-    height: calc(100dvh - 26px - 7px);
+    height: calc(100dvh - 26px - 7px - 20px);
     z-index: 10;
+    padding: 10px;
 }
 #subarea[data-open="open"] {
     visibility: visible;
@@ -165,6 +166,12 @@ visibility: hidden !important;
 }
 #subarea[data-loc="right"] {
     right: 0;
+}
+
+#partialexport {
+    overflow: auto;
+    height: 100%;
+    width: 100%;
 }
 
 /* scroll bar */
