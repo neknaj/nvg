@@ -5,6 +5,7 @@
         <title>Neknaj Video Generator</title>
         <link rel="stylesheet" href="index.css" />
         <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
         <script src="logarea.js"></script>
         <script src="index.js"></script>
         <script src="../node_modules/ace-builds/src/ace.js"></script>
@@ -269,7 +270,15 @@ document.onkeydown = (e)=>{
         }
     }
     if (e.keyCode==32&&!editor.isFocused()) {
-        playPreview();
+        togglePlayPreview();
+    }
+    if (!e.shiftKey&&e.keyCode==39) {
+        currentFrame++;
+        updatePlayCtrl();
+    }
+    if (!e.shiftKey&&e.keyCode==37) {
+        currentFrame--;
+        updatePlayCtrl();
     }
 }
 </script>
@@ -280,52 +289,312 @@ let seekbar = document.querySelector("#seekbar");
 let currentFrameShow = document.querySelector("#currentFrame");
 let TimeLineTimeBar = document.querySelector("#tl_timebar");
 let playbutton = document.querySelector("#playbutton");
-seekbar.addEventListener("input",()=>{
-    currentFrame = seekbar.value;
-    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
-    currentFrameShow.innerText = currentFrame;
+let VideoFPS = 30;
+seekbar.addEventListener("input",(e)=>{
+    currentFrame = Number(seekbar.value);
+    updatePlayCtrl();
+})
+seekbar.addEventListener("change",(e)=>{
+    currentFrame = Number(seekbar.value);
+    updatePlayCtrl();
 })
 TimeLineTimeBar.addEventListener("mousedown",(e)=>{
     let resize = (e)=>{
         let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
         let x = ex/(0.8**TimelineScale[0]);
-        if (x<0) {x=0};
-        currentFrame = Math.floor(x);
-        TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
-        seekbar.value = currentFrame;
-        currentFrameShow.innerText = currentFrame;
+        currentFrame = x;
+        updatePlayCtrl();
     }
     document.addEventListener("mousemove",resize,false);
     document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
 });
 
-function play() {
-    currentFrame++;
-    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
-    seekbar.value = currentFrame;
-    currentFrameShow.innerText = currentFrame;
-}
 function Previewzero() {
     currentFrame = 0;
-    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale));`;
+    updatePlayCtrl();
+}
+function updatePlayCtrl() {
+    if (currentFrame<0) {currentFrame=0};
+    if (currentFrame>Number(seekbar.max)) {currentFrame=Number(seekbar.max)};
+    currentFrame = Number(currentFrame);
+    TimeLineTimeBar.style = `left:calc( ${currentFrame}px *var(--tl-x-scale) + 5px);`;
     seekbar.value = currentFrame;
     currentFrameShow.innerText = currentFrame;
 }
 
-var playInterval = null;
+var playInterval = false;
 playbutton.addEventListener("click",()=>{
     TimelineArea.focus();
-    playPreview();
+    togglePlayPreview();
 })
-function playPreview() {
-    if (playInterval==null) {
-        playInterval = setInterval(play,33);
+function togglePlayPreview() {
+    if (playInterval==false) {
+        playInterval = true;
     }
     else {
-        clearInterval(playInterval);
-        playInterval = null;
+        playInterval = false;
     }
 }
+async function makeCache() {
+    let flag = false;
+    i = currentFrame+2;
+    while (i<lastObjFrame) {
+        if (TLcache[i]==null) {
+            flag = true;
+            await cacheFrame(i);
+            break; 
+        }
+        i++;
+    }
+    if (flag) {
+        setTimeout(makeCache,0)
+    }
+}
+async function playPreview() {
+    const startTime = performance.now();
+    updatePlayCtrl();
+    let m = await drawFrame(currentFrame);
+    if (m==1) {
+        if (playInterval) {
+            setTimeout(playPreview,1);
+        }
+        else {
+            setTimeout(playPreview,100);
+        }
+    }
+    else {
+        const endTime = performance.now();
+        if (playInterval) {
+            setTimeout(playPreview,(1000/VideoFPS)-(endTime-startTime));
+        }
+        else {
+            setTimeout(playPreview,100);
+        }
+    }
+    if (playInterval) {
+        currentFrame++;
+    }
+}
+setTimeout(makeCache,0)
+setTimeout(playPreview,100)
 
+</script>
+<script> // TimeLine Objects
+
+var obj_text = {
+    length: (l,t,x,y,s)=>{return l},
+    text: (l,t,x,y,s)=>{return "text: "+t},
+    textcolor: (l,t,x,y,s)=>{return "#000"},
+    color: (l,t,x,y,s)=>{return "#ff5575"},
+    getframe: async (af,rf,len,l,t,x,y,s)=>{
+        let co = document.createElement("canvas");
+        co.height = 1080;
+        co.width = 1920;
+        let ctx = co.getContext("2d");
+        ctx.font = `${s}px serif`;
+        ctx.fillText(t,x,y);
+        let image = new Image();
+        image.src = co.toDataURL();
+        return await canvas2image(co);
+    },
+}
+var obj_rect = {
+    length: (l,x,y,w,h,c)=>{return l},
+    text: (l,x,y,w,h,c)=>{return "rect"},
+    textcolor: (l,x,y,w,h,c)=>{return "#000"},
+    color: (l,x,y,w,h,c)=>{return "#88ff55"},
+    getframe: async (af,rf,len,x,y,w,h,c)=>{
+        let co = document.createElement("canvas");
+        co.height = 1080;
+        co.width = 1920;
+        let ctx = co.getContext("2d");
+        ctx.fillStyle = c;
+        ctx.strokeStyle = c;
+        ctx.rect(x,y,w,h);
+        ctx.fill();
+        ctx.stroke();
+
+        return await canvas2image(co);
+    },
+}
+var obj_time = {
+    length: (l,x,y,s)=>{return l},
+    text: (l,x,y,s)=>{return "time"},
+    textcolor: (l,x,y,s)=>{return "#000"},
+    color: (l,x,y,s)=>{return "#c0c505"},
+    getframe: async (af,rf,len,l,x,y,s)=>{
+        let co = document.createElement("canvas");
+        co.height = 1080;
+        co.width = 1920;
+        let ctx = co.getContext("2d");
+        ctx.font = `${s}px serif`;
+        let padding = (num,len)=>{
+            return Array(len).join("0").slice(-len)+num;
+        }
+        let second = Math.floor(af/VideoFPS*100)/100;
+        ctx.fillText(second,x,y);
+        let image = new Image();
+        image.src = co.toDataURL();
+        return await canvas2image(co);
+    },
+}
+
+async function canvas2image(canvas){
+    const image = new Image();
+    return new Promise(
+        (resolve) => {
+            image.onload = () => {
+                resolve(image);
+            }
+            image.src = canvas.toDataURL();
+        }
+    )
+}
+
+var timeline = [
+    [obj_rect,100,800,30,800,300,"#ff5"],
+    [obj_text,0,500,"HELLO!!",50,900,200],
+    [obj_rect,120,500,90,500,700,"#f06"],
+    [obj_time,80,500,30,500,100,"#f06"],
+    [obj_text,10,1000,"Neknaj Video Generator",300,600,100],
+    [obj_text,30,1200,"bem130",1400,600,70],
+]
+let timeLineTmp;
+let lastObjFrame;
+let TimelineA;
+let TLTs = 20;
+let TLcache = [];
+let drawFrame = async (f)=>{
+    if (f<0) {return 0}
+    if (f>=lastObjFrame) {return 0}
+    if (TLcache[f]==null) {
+        let objects = [];
+        for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
+            if (timeLineTmp[lastObjFrame*layer+f]!=0) {
+                objects.push(TimelineA[timeLineTmp[lastObjFrame*layer+f]-1])
+            }
+        }
+        //console.table(objects)
+        { // 描画する
+            let bufco = document.createElement("canvas");
+            bufco.height = 1080;
+            bufco.width = 1920;
+            bufco.style = imgout.style;
+            bufco.id = imgout.id;
+
+            let ctx = bufco.getContext("2d");
+            for (let obj of objects) {
+                let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
+                ctx.drawImage(objf,0,0);
+            }
+            let imgdata = ctx.getImageData(0,0,1920,1080);
+            //console.log("calc") 
+            imgout.getContext("2d").putImageData(imgdata,0,0);
+        // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
+        }
+        return 1;
+    }
+    else {
+        //console.log("cache")
+        imgout.getContext("2d").putImageData(TLcache[f],0,0);
+        return 2;
+    }
+}
+let cacheFrame = async (f)=>{
+    if (TLcache[f]==null) {
+        let objects = [];
+        for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
+            if (timeLineTmp[lastObjFrame*layer+f]!=0) {
+                objects.push(TimelineA[timeLineTmp[lastObjFrame*layer+f]-1])
+            }
+        }
+        //console.table(objects)
+        { // 描画する
+            let cachebufco = document.createElement("canvas");
+            cachebufco.height = 1080;
+            cachebufco.width = 1920;
+            cachebufco.style = imgout.style;
+            cachebufco.id = imgout.id;
+
+            let ctx = cachebufco.getContext("2d");
+            for (let obj of objects) {
+                let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
+                ctx.drawImage(objf,0,0);
+            }
+            let imgdata = ctx.getImageData(0,0,1920,1080);
+            TLcache[f] = imgdata;
+        // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
+        }
+        return 1;
+    }
+    else {
+        return 2;
+    }
+}
+var TLstat;
+var makeTLObject = ()=>{
+    TimelineObjects.innerHTML = "";
+    lastObjFrame = 0;
+    TimelineA = [];
+    for (let obj of timeline) { // 各オブジェクトの長さを取得
+        console.log(obj)
+        let objlen = obj[0].length(...obj.slice(2));
+        if (obj[1]+objlen>lastObjFrame) {
+            lastObjFrame = obj[1]+objlen;
+        }
+        TimelineA.push({func:obj[0],start:obj[1],end:obj[1]+objlen,len:objlen,args:obj.slice(2)})
+    }
+    if (lastObjFrame!=TLcache.length) {
+        TLcache = new Array(lastObjFrame).fill(null);
+    }
+    console.log(lastObjFrame);
+    console.table(TimelineA);
+    Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
+    seekbar.max = lastObjFrame;
+    timeLineTmp = new Uint8Array(lastObjFrame*TLTs).fill(0);
+    let searchLayer = (obj)=>{ // オブジェクトを置くべきレイヤーを探す
+        let layer = 0;
+        while (layer<TLTs) {
+            let flag = true;
+            for (let x=0;x<obj.len;x++) {
+                if (timeLineTmp[lastObjFrame*layer+obj.start+x]!=0) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag) {
+                return layer;
+            }
+            layer++;
+        }
+        return false;
+    }
+    let setObj = (obj,layer,id)=>{ // timeLineTmpとオブジェクトを更新
+        for (let x=0;x<obj.len;x++) {
+            timeLineTmp[lastObjFrame*layer+obj.start+x]=id+1;
+        }
+        obj.layer = layer;
+        obj.id = id;
+    }
+    for (let id in TimelineA) { // オブジェクトのレイヤーを決定
+        id = Number(id);
+        let obj = TimelineA[id];
+        let layer = searchLayer(obj);
+        setObj(obj,layer,id);
+        console.log(layer,id)
+    }
+    console.table(TimelineA)
+    for (let obj of TimelineA) { // 実際のタイムラインに表示する
+        let divelm = document.createElement("div");
+        divelm.classList.add("object");
+        divelm.style = `left:calc( ${obj.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.len}px *var(--tl-x-scale) - 4px);background-color: ${obj.func.color(...obj.args)};color: ${obj.func.textcolor(...obj.args)}`;
+        divelm.innerText = obj.func.text(...obj.args);
+        TimelineObjects.appendChild(divelm);
+        obj.tlelm = divelm;
+    }
+   // <div class="object" style=""></div>
+}
+
+makeTLObject()
 
 </script>

@@ -26,4 +26,7 @@
     &.log {
         background: rgba(0, 255, 179, 0.3);
     }
+    &.link {
+        background: rgba(0, 208, 255, 0.3);
+    }
 }

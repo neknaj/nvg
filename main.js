@@ -1,6 +1,6 @@
 if (process.env.NODE_ENV=="debug") {console.log("Start in debug mode")};
 
-const { app, Menu, BrowserWindow , ipcMain, dialog, MessageChannelMain} = require('electron');
+const { app, Menu, BrowserWindow , ipcMain, dialog, shell, MessageChannelMain} = require('electron');
 const path = require('path');
 const fs = require("fs");
 const url = require("url");
@@ -64,6 +64,14 @@ function createWindow() {
         icon: path.join(__dirname, './src/nvg.ico'),
     });
     // Create the browser window.
+    
+    
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        return { action: 'allow', overrideBrowserWindowOptions: {
+            autoHideMenuBar: true,
+        } };
+    });
+
 
     mainWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(__dirname,"./src/index.html"),query:{}}));
     mainWindow.setMenuBarVisibility(false);

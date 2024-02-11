@@ -198,19 +198,20 @@ visibility: hidden !important;
     --tl-y-scale: 1;
     --tl-x-scale2: 1;
     --tl-x-scale: var(--tl-x-scale2);
-    max-height:100%;
     padding: 5px;
     transform: scale(1);
     z-index: -10;
-    height: fit-content;
     & .object {
-        background-color: rgb(152, 138, 206);
-        height: calc(30px *var(--tl-y-scale));
+        user-select: none;
+        height: calc(30px *var(--tl-y-scale) - 4px);
         margin: 5px;
-        padding: 0;
+        padding: 2px;
         position: absolute;
+        font-size: 20px;
+        overflow-x: auto;
+        white-space: nowrap;
         &:hover {
-            background-color: rgb(125, 99, 232);
+            filter: brightness(0.8);
         }
     }
     & #tl_timebar {

@@ -55,4 +55,19 @@
             log_log(i,document.getElementById("logarea"),false);
         }
     }
+    let log_link = (link,elm,defaultopen=false)=>{
+        let pelm = document.createElement("p");
+        pelm.classList.add("jsonviewer");
+        pelm.classList.add("link");
+        pelm.appendChild(json_child(link,defaultopen));
+        let aelm = document.createElement("a");
+        aelm.appendChild(pelm);
+        aelm.href = link;
+        aelm.target = "_blank";
+        elm.appendChild(aelm);
+    }
+    console.link = (link)=>{
+        consolelog(link);
+        log_link(link,document.getElementById("logarea"),false);
+    }
 }
