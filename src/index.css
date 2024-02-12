@@ -66,7 +66,7 @@ body {
     top: calc(28px + 10px);
     transform-origin: top left;
     background-color: rgb(0, 0, 0);
-    border: 1px solid white;
+    border: 2px solid white;
     cursor: crosshair;
 }
 .imgOutWindow {
@@ -204,8 +204,7 @@ visibility: hidden !important;
 }
 #timeline {
     --tl-y-scale: 1;
-    --tl-x-scale2: 1;
-    --tl-x-scale: var(--tl-x-scale2);
+    --tl-x-scale: 1;
     padding: 5px;
     transform: scale(1);
     z-index: -10;

@@ -76,38 +76,18 @@
                         <h3>Partial export</h3>
                         <table>
                             <tr>
-                                <td>
-                                    <label for="export_range_start">start:</label>
-                                </td>
-                                <td>
-                                    <input type="number" id="export_range_start" min="0">
-                                </td>
-                                <td>
-                                    <button>first frame</button>
-                                </td>
-                                <td>
-                                    <button>current playback position</button>
-                                </td>
-                                <td>
-                                    <button>last frame</button>
-                                </td>
+                                <td><label for="export_range_start">start:</label></td>
+                                <td><input type="number" id="export_range_start" min="0"></td>
+                                <td><button>first frame</button></td>
+                                <td><button>current playback position</button></td>
+                                <td><button>last frame</button></td>
                             </tr>
                             <tr>
-                                <td>
-                                    <label for="export_range_end">end:</label>
-                                </td>
-                                <td>
-                                    <input type="number" id="export_range_end" min="0">
-                                </td>
-                                <td>
-                                    <button>first frame</button>
-                                </td>
-                                <td>
-                                    <button>current playback position</button>
-                                </td>
-                                <td>
-                                    <button>last frame</button>
-                                </td>
+                                <td><label for="export_range_end">end:</label></td>
+                                <td><input type="number" id="export_range_end" min="0"></td>
+                                <td><button>first frame</button></td>
+                                <td><button>current playback position</button></td>
+                                <td><button>last frame</button></td>
                             </tr>
                         </table>
                     </div>
@@ -208,7 +188,7 @@ function resize() {
         const dh = videoConfig.height;
         let rw = 0;let rh = 0;
         parent = imgOutArea.getBoundingClientRect();
-        let bottom_area = 30;
+        let bottom_area = 35;
         let ww = parent.width;
         let wh = parent.height-bottom_area;
         let csc = 1
@@ -355,7 +335,7 @@ TimeLineTimeBar.addEventListener("mousedown",(e)=>{
         let x = ex/(0.8**TimelineScale[0]);
         if (x<0) {x=0};
         if (x>=Number(seekbar.max)) {x=Number(seekbar.max)};
-        currentFrame = x; 
+        currentFrame = Math.round(x);
         updatePlayCtrl();
     }
     document.addEventListener("mousemove",resize,false);
@@ -369,7 +349,7 @@ function Previewzero() {
 function updatePlayCtrl(f=currentFrame) {
     if (f<0) {f=0};
     if (f>=Number(seekbar.max)) {f=Number(seekbar.max)};
-    f = Number(f);
+    f = Math.round(Number(f));
     TimeLineTimeBar.style = `left:calc( ${f}px *var(--tl-x-scale) + 5px);`;
     seekbar.value = f;
     currentFrameShow.innerText = f;
@@ -382,6 +362,7 @@ playbutton.addEventListener("click",()=>{
     togglePlayPreview();
 })
 function togglePlayPreview() {
+    if (currentFrame==Number(seekbar.max)) {currentFrame=0;}
     if (playInterval==false) {
         playInterval = true;
     }
@@ -397,6 +378,7 @@ document.getElementById("export").addEventListener("click",async ()=>{
     if (exporting) {e.preventDefault();return false;}
     exporting = true;
     editor.setReadOnly(true);
+    playInterval = false;
     export_frame(0);
 })
 async function export_frame(i=0) {
@@ -422,7 +404,7 @@ async function export_frame(i=0) {
 async function makeCache() {
     if (exporting) {setTimeout(makeCache,2000);return false;}
     let flag = false;
-    i = currentFrame+10 ;
+    i = currentFrame+1 ;
     while (i<lastObjFrame) {
         if (TLcache[i]==null) {
             flag = true;
@@ -451,11 +433,14 @@ async function playPreview() {
     const startTime = performance.now();
     updatePlayCtrl();
     let m = await drawFrame(currentFrame);
-    const endTime = performance.now();
+    const endTime = performance.now()+5;
     if (playInterval) {
-        let passedFrame = Math.floor((endTime-startTime)/(1000/VideoFPS)+0.1)
+        let passedFrame = Math.floor((endTime-startTime)/(1000/VideoFPS))
         setTimeout(playPreview,(1000/VideoFPS)-((endTime-startTime)%(1000/VideoFPS)));
-        currentFrame+=passedFrame
+        if (currentFrame+passedFrame>seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
+        else {
+            currentFrame+=passedFrame;
+        }
     }
     else {
         setTimeout(playPreview,100);
@@ -548,6 +533,7 @@ async function canvas2image(canvas){
 }
 
 var timeline = [
+    [obj_rect,10,1,30,800,300,"#ff5"],
     [obj_rect,100,100,30,800,300,"#ff5"],
     [obj_text,0,120,"HELLO!!",50,900,200,50,50],
     [obj_rect,120,100,90,500,700,"#f06"],
@@ -566,11 +552,11 @@ let drawFrame = async (f)=>{
     if (TLcache[f]==null) {
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
-            if (timeLineTmp[lastObjFrame*layer+f]!=0) {
-                objects.push(TimelineA[timeLineTmp[lastObjFrame*layer+f]-1])
+            if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
+                objects.push(TimelineA[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
             }
         }
-        //console.table(objects)
+        //console.table(f,objects)
         { // 描画する
             let bufco = document.createElement("canvas");
             bufco.height = 1080;
@@ -587,35 +573,36 @@ let drawFrame = async (f)=>{
                 ctx.drawImage(objf,0,0);
             }
             let imgdata = ctx.getImageData(0,0,1920,1080);
-            //console.log("calc") 
-            imgout.getContext("2d").putImageData(imgdata,0,0);
+            TLcache[f] = imgdata;
+            imgout.getContext("2d").putImageData(TLcache[f],0,0);
         // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
         }
         return 1;
     }
     else {
-        //console.log("cache")
         imgout.getContext("2d").putImageData(TLcache[f],0,0);
         return 2;
     }
 }
 let cacheFrame = async (f)=>{
+    if (f<0) {return 0}
+    if (f>=lastObjFrame) {return 0}
     if (TLcache[f]==null) {
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
-            if (timeLineTmp[lastObjFrame*layer+f]!=0) {
-                objects.push(TimelineA[timeLineTmp[lastObjFrame*layer+f]-1])
+            if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
+                objects.push(TimelineA[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
             }
         }
-        //console.table(objects)
+        //console.table(f,objects)
         { // 描画する
-            let cachebufco = document.createElement("canvas");
-            cachebufco.height = 1080;
-            cachebufco.width = 1920;
-            cachebufco.style = imgout.style;
-            cachebufco.id = imgout.id;
+            let bufco = document.createElement("canvas");
+            bufco.height = 1080;
+            bufco.width = 1920;
+            bufco.style = imgout.style;
+            bufco.id = imgout.id;
 
-            let ctx = cachebufco.getContext("2d");
+            let ctx = bufco.getContext("2d");
             ctx.fillStyle = "black";
             ctx.rect(0,0,1920,1080);
             ctx.fill();
@@ -642,9 +629,9 @@ var makeTLObject = ()=>{
         console.log(obj)
         let objlen = obj[0].length(...obj.slice(2));
         if (obj[1]+objlen>lastObjFrame) {
-            lastObjFrame = obj[1]+objlen;
+            lastObjFrame = obj[1]+objlen-1;
         }
-        TimelineA.push({func:obj[0],start:obj[1],end:obj[1]+objlen,len:objlen,args:obj.slice(2)})
+        TimelineA.push({func:obj[0],start:obj[1],end:obj[1]+objlen-1,len:objlen,args:obj.slice(2)})
     }
     if (lastObjFrame!=TLcache.length) {
         TLcache = new Array(lastObjFrame).fill(null);
@@ -653,13 +640,13 @@ var makeTLObject = ()=>{
     console.table(TimelineA);
     Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
     seekbar.max = lastObjFrame;
-    timeLineTmp = new Uint8Array(lastObjFrame*TLTs).fill(0);
+    timeLineTmp = new Uint8Array((lastObjFrame+1)*TLTs).fill(0);
     let searchLayer = (obj)=>{ // オブジェクトを置くべきレイヤーを探す
         let layer = 0;
         while (layer<TLTs) {
             let flag = true;
             for (let x=0;x<obj.len;x++) {
-                if (timeLineTmp[lastObjFrame*layer+obj.start+x]!=0) {
+                if (timeLineTmp[(lastObjFrame+1)*layer+obj.start+x]!=0) {
                     flag = false;
                     break;
                 }
@@ -673,7 +660,7 @@ var makeTLObject = ()=>{
     }
     let setObj = (obj,layer,id)=>{ // timeLineTmpとオブジェクトを更新
         for (let x=0;x<obj.len;x++) {
-            timeLineTmp[lastObjFrame*layer+obj.start+x]=id+1;
+            timeLineTmp[(lastObjFrame+1)*layer+obj.start+x]=id+1;
         }
         obj.layer = layer;
         obj.id = id;
@@ -689,7 +676,7 @@ var makeTLObject = ()=>{
     for (let obj of TimelineA) { // 実際のタイムラインに表示する
         let divelm = document.createElement("div");
         divelm.classList.add("object");
-        divelm.style = `left:calc( ${obj.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.len}px *var(--tl-x-scale) - 4px);background-color: ${obj.func.color(...obj.args)};color: ${obj.func.textcolor(...obj.args)}`;
+        divelm.style = `left:calc( ${obj.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.len-0.1}px *var(--tl-x-scale) - 4px);background-color: ${obj.func.color(...obj.args)};color: ${obj.func.textcolor(...obj.args)}`;
         divelm.innerText = obj.func.text(...obj.args);
         TimelineObjects.appendChild(divelm);
         obj.tlelm = divelm;
