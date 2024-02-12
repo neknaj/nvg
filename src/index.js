@@ -17,12 +17,23 @@ window.electron.on("resultBW", async (object)=>{
     console.log("result",object);
 });
 
-function updateEditorData(data) {
-    editor.setValue(data);
-    SetWindowTitle();
-    let sel = editor.getSelection();
-    let range = sel.getRange();
-    range.setStart(0,0);
-    range.setEnd(0,0);
-    sel.setSelectionRange(range);
-}
+window.electron.on("FolderData", async (_path,result)=>{
+    console.log(_path,result);
+    switch (_path) {
+        case ".":
+            ExportsExplorer(result);
+        break;
+    }
+});
+
+window.electron.on("videoComposed", async (filename)=>{
+    console.log("video Composed",filename)
+    if (document.querySelector("#autoopenself").checked) {
+        window.electron.openPathSelf(filename);
+    }
+    if (document.querySelector("#autoopendefault").checked) {
+        window.electron.openPathDefault(filename);
+    }
+});
+
+

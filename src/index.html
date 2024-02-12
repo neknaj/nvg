@@ -162,6 +162,16 @@ function SetWindowTitle() {
     ].join("　");
 }
 
+function updateEditorData(data) {
+    editor.setValue(data);
+    SetWindowTitle();
+    let sel = editor.getSelection();
+    let range = sel.getRange();
+    range.setStart(0,0);
+    range.setEnd(0,0);
+    sel.setSelectionRange(range);
+}
+
 function data2string(data) {
     if (typeof data=="string") {
         return "\""+data+"\"";
@@ -228,13 +238,13 @@ function resize() {
 };
 window.onresize = resize;
 window.onload = ()=>{
-    window.electron.onload();
     imgout.height = videoConfig.height;
     imgout.width = videoConfig.width;
     resize();
     SetWindowTitle();
     initEditor();
     Previewzero();
+    window.electron.onload();
 };
 function initEditor() {
     editor = ace.edit("editor");
@@ -455,15 +465,6 @@ async function export_frame(i=0,s,e) {
         stopExporting = false;
     }
 }
-window.electron.on("videoComposed", async (filename)=>{
-    console.log("video Composed",filename)
-    if (document.querySelector("#autoopenself").checked) {
-        window.electron.openPathSelf(filename);
-    }
-    if (document.querySelector("#autoopendefault").checked) {
-        window.electron.openPathDefault(filename);
-    }
-});
 async function makeCache() {
     if (exporting) {setTimeout(makeCache,2000);return false;}
     let flag = false;
@@ -759,14 +760,6 @@ makeTLObject()
 </script>
 <script> // explorer
 
-window.electron.on("FolderData", async (_path,result)=>{
-    console.log(_path,result);
-    switch (_path) {
-        case ".":
-            ExportsExplorer(result);
-        break;
-    }
-});
 
 function ExportsExplorer(result) {
     let exportexplorer = document.querySelector("#exportexplorer");
