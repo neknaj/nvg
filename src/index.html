@@ -20,10 +20,9 @@
                 <img src="./nvg.png">
             </div>
             <div>
-                <button type="button" id="export">Export</button>
                 <button type="button" id="openfile">Open File</button>
                 <button type="button" id="savefileas">Save As</button>
-                <button type="button" id="composevideo">Compose Video</button>
+                <button type="button" id="sidearea">Side Area</button>
                 <div>
                     <input type="checkbox" switch id="autosave"><label for="autosave">Auto Save</label>
                 </div>
@@ -71,30 +70,45 @@
         </div>
         <div id="subarea" data-open="close" data-loc="left">
             <div class="resizer_Vcontainer" style="height: 100%;">
-                <div class="resizer_content" style="flex-basis: 30%;">
+                <div class="resizer_content" style="flex-basis: 40%;">
                     <div id="partialexport">
+                        <h2>Export</h2>
+                        <button id="export">Export</button>
+                        <button id="cancelexport">Cancel Export</button>
                         <h3>Partial export</h3>
                         <table>
                             <tr>
                                 <td><label for="export_range_start">start:</label></td>
-                                <td><input type="number" id="export_range_start" min="0"></td>
-                                <td><button>first frame</button></td>
-                                <td><button>current playback position</button></td>
-                                <td><button>last frame</button></td>
+                                <td><input type="number" id="export_range_start" min="0" value="0" onchange="checkExportrange()"></td>
+                                <td><button onclick="export_range_start.value=0">first frame</button></td>
+                                <td><button onclick="export_range_start.value=currentFrame">current playback position</button></td>
+                                <td><button onclick="export_range_start.value=lastObjFrame">last frame</button></td>
                             </tr>
                             <tr>
                                 <td><label for="export_range_end">end:</label></td>
-                                <td><input type="number" id="export_range_end" min="0"></td>
-                                <td><button>first frame</button></td>
-                                <td><button>current playback position</button></td>
-                                <td><button>last frame</button></td>
+                                <td><input type="number" id="export_range_end" min="0" value="0" onchange="checkExportrange()"></td>
+                                <td><button onclick="export_range_end.value=0">first frame</button></td>
+                                <td><button onclick="export_range_end.value=currentFrame">current playback position</button></td>
+                                <td><button onclick="export_range_end.value=lastObjFrame">last frame</button></td>
                             </tr>
                         </table>
+                        <h3>When export is complete</h3>
+                        <div>
+                            <input type="checkbox" switch id="autoopenself"><label for="autosave">Open in NVG</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" switch id="autoopendefault"><label for="autosave">Open in default app</label>
+                        </div>
                     </div>
                 </div>
                 <div class="resizer_splitter"></div>
-                <div class="resizer_content" style="flex-basis: 70%;">
-                    2
+                <div class="resizer_content" style="flex-basis: 60%;">
+                    <div>
+                        <h2>Export Explorer</h2>
+                        <button onclick="window.electron.openPathDefault('./');">Open in explorer</button>
+                        <button onclick="window.electron.getFolder('.')">🔄</button>
+                        <table id="exportexplorer"></table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -131,7 +145,7 @@ function resizer_Hcontainer_addEL (container,framesMin,resizerW,callback=()=>{})
 <script>
 
 var editor;
-var ProjecInfo = {
+var ProjectInfo = {
     path: null,
     name: null,
 }
@@ -139,12 +153,12 @@ var ProjecInfo = {
 function SetWindowTitle() {
     document.title = [
         "Neknaj Video Generator",
-        data2string(ProjecInfo.name),
-        data2string(ProjecInfo.path),
+        data2string(ProjectInfo.name?.name),
+        data2string(ProjectInfo.path),
     ].join(" ")
     document.getElementById("title").innerText = [
-        data2string(ProjecInfo.name),
-        data2string(ProjecInfo.path),
+        data2string(ProjectInfo.name?.name),
+        data2string(ProjectInfo.path),
     ].join("　");
 }
 
@@ -160,11 +174,11 @@ function data2string(data) {
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
-document.getElementById("openfile").onclick = ()=>{
+document.getElementById("openfile").onclick = (e)=>{
     if (exporting) {e.preventDefault();return false;}
     window.electron.openFile();
 }
-document.getElementById("savefileas").onclick = ()=>{
+document.getElementById("savefileas").onclick = (e)=>{
     if (exporting) {e.preventDefault();return false;}
     window.electron.saveAs(editor.getValue());
 }
@@ -177,6 +191,7 @@ let videoConfig = {
     "width": 1920,
 }
 var exporting = false;
+var stopExporting = false;
 
 var imgout = document.getElementById("imgOut");
 
@@ -213,6 +228,7 @@ function resize() {
 };
 window.onresize = resize;
 window.onload = ()=>{
+    window.electron.onload();
     imgout.height = videoConfig.height;
     imgout.width = videoConfig.width;
     resize();
@@ -229,14 +245,14 @@ function initEditor() {
         if (exporting) {e.preventDefault();return false;}
         if (e.ctrlKey&&e.key=="o") {
             let cursor = editor.selection.getCursor()
-            if (ProjecInfo.path!=null) {
-                location.href = ["vscode://file/",ProjecInfo.path,":"+cursor.row+":"+cursor.column].join("");
+            if (ProjectInfo.path!=null) {
+                location.href = ["vscode://file/",ProjectInfo.path,":"+(cursor.row+1)+":"+(cursor.column+1)].join("");
             }
         }
     })
     editor.getSession().on('change', function(){
-        if (autosave.checked&&ProjecInfo.path!=null) {
-            window.electron.saveFile(ProjecInfo.path,editor.getValue());
+        if (autosave.checked&&ProjectInfo.path!=null) {
+            window.electron.saveFile(ProjectInfo.path,editor.getValue());
         }
     });
 }
@@ -371,17 +387,47 @@ function togglePlayPreview() {
     }
 }
 
-document.getElementById("composevideo").addEventListener("click",()=>{
-    window.electron.composeVideo()
-})
-document.getElementById("export").addEventListener("click",async ()=>{
+document.getElementById("export").addEventListener("click",async (e)=>{
     if (exporting) {e.preventDefault();return false;}
+    if (ProjectInfo.path==null) {console.warn("project file not selected");return false;}
+    ExportFrame();
+    stopExporting = false;
+})
+document.getElementById("cancelexport").addEventListener("click",async (e)=>{
+    if (!exporting) {console.warn("not exporting")};
+    stopExporting = true;
+})
+document.getElementById("sidearea").addEventListener("click",async (e)=>{
+    if (subarea.dataset.open=="open") {
+        subarea.dataset.open = "close";
+    }
+    else {
+        subarea.dataset.open = "open";
+    }
+})
+var export_range_start = document.querySelector('#export_range_start');
+var export_range_end = document.querySelector('#export_range_end');
+function ExportFrame() {
     exporting = true;
     editor.setReadOnly(true);
     playInterval = false;
-    export_frame(0);
-})
-async function export_frame(i=0) {
+    checkExportrange();
+    let start = Math.floor(Number(export_range_start.value));
+    let end = Math.floor(Number(export_range_end.value));
+    window.electron.cleanExportFrame(start,end);
+    export_frame(start,start,end);
+}
+function checkExportrange() {
+    let start = Math.floor(Number(export_range_start.value));
+    let end = Math.floor(Number(export_range_end.value));
+    if (start<0) {start=0}
+    if (end>lastObjFrame) {end=lastObjFrame}
+    if (end<start) {end=start}
+    export_range_start.value = Math.round(start);
+    export_range_end.value = Math.round(end);
+}
+async function export_frame(i=0,s,e) {
+    exporting = true;
     await drawFrame(i);
     updatePlayCtrl(i);
     imgout.toBlob((blob)=>{
@@ -393,14 +439,31 @@ async function export_frame(i=0) {
             window.electron.exportFrame(i,new Uint8Array(buffer));
         }
     });
-    if (i<lastObjFrame-1) {
-        setTimeout(export_frame,3,i+1);
+    if (i<e&&!stopExporting) {
+        setTimeout(export_frame,0,i+1,s,e);
     }
     else {
         editor.setReadOnly(false);
         exporting = false;
+        let fname = "";
+        if (s!=0||i!=lastObjFrame) {
+            fname = `_${s}-${i}`;
+        }
+        console.log(fname);
+        window.electron.cleanExportFrame(s,i);
+        window.electron.composeVideo(s,i,VideoFPS,fname);
+        stopExporting = false;
     }
 }
+window.electron.on("videoComposed", async (filename)=>{
+    console.log("video Composed",filename)
+    if (document.querySelector("#autoopenself").checked) {
+        window.electron.openPathSelf(filename);
+    }
+    if (document.querySelector("#autoopendefault").checked) {
+        window.electron.openPathDefault(filename);
+    }
+});
 async function makeCache() {
     if (exporting) {setTimeout(makeCache,2000);return false;}
     let flag = false;
@@ -623,8 +686,10 @@ let cacheFrame = async (f)=>{
 var TLstat;
 var makeTLObject = ()=>{
     TimelineObjects.innerHTML = "";
-    lastObjFrame = 0;
     TimelineA = [];
+    lastObjFrame = 0;
+    let partialexportUpdate = false;
+    if (export_range_end.value==lastObjFrame) {partialexportUpdate=true;}
     for (let obj of timeline) { // 各オブジェクトの長さを取得
         console.log(obj)
         let objlen = obj[0].length(...obj.slice(2));
@@ -636,6 +701,11 @@ var makeTLObject = ()=>{
     if (lastObjFrame!=TLcache.length) {
         TLcache = new Array(lastObjFrame).fill(null);
     }
+    if (partialexportUpdate) {
+        export_range_end.value = lastObjFrame;
+    }
+    export_range_start.max = lastObjFrame;
+    export_range_end.max = lastObjFrame;
     console.log(lastObjFrame);
     console.table(TimelineA);
     Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
@@ -685,5 +755,63 @@ var makeTLObject = ()=>{
 }
 
 makeTLObject()
+
+</script>
+<script> // explorer
+
+window.electron.on("FolderData", async (_path,result)=>{
+    console.log(_path,result);
+    switch (_path) {
+        case ".":
+            ExportsExplorer(result);
+        break;
+    }
+});
+
+function ExportsExplorer(result) {
+    let exportexplorer = document.querySelector("#exportexplorer");
+    exportexplorer.innerHTML = "";
+    for (let item of result) {
+        if (item[0].ext==".mp4") {
+            let trelm = document.createElement("tr");
+            exportexplorer.appendChild(trelm);
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                ldelm.innerText = item[0].base;
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in NVG";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathSelf("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in default app";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathDefault("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in explorer";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathExplorer("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+        }
+    }
+}
 
 </script>

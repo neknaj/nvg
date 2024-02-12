@@ -1,5 +1,6 @@
 :root {
     color-scheme: dark;
+    user-select: none;
 }
 body {
     background-color: black;
@@ -11,7 +12,6 @@ body {
 }
 #topbar {
     -webkit-app-region: drag;
-    user-select: none;
     height: 24px;
     padding: 2px;
     background: #2b373d;
@@ -86,7 +86,6 @@ body {
 }
 
 #timebar {
-    user-select: none;
     position: relative;
     width: 100%;
     bottom: 20px;
@@ -209,7 +208,6 @@ visibility: hidden !important;
     transform: scale(1);
     z-index: -10;
     & .object {
-        user-select: none;
         height: calc(30px *var(--tl-y-scale) - 4px);
         margin: 5px;
         padding: 2px;
@@ -275,4 +273,9 @@ visibility: hidden !important;
     & > .resizer_splitter:hover {
         background-color: #acacac;
     }
+}
+
+/* export explorer */
+#exportexplorer {
+    margin: 10px;
 }

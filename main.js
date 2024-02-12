@@ -93,7 +93,14 @@ function createWindow() {
         app.quit();
     })
 
-    
+
+    ipcMain.on('onload',async (event)=>{
+        beforedata = null;
+        filewatcher = {close:()=>{}};
+        fileName = null;
+        folderPath = null;
+    });
+
     ipcMain.handle('readFile',async (event,path)=>{
         const buff = fs.readFileSync(path,"utf8");
         beforedata = buff;
@@ -120,7 +127,7 @@ function createWindow() {
         // ファイルの内容を返却
         try {
             const _path = paths[0].replace(/\\/g,"/");
-            mainWindow.webContents.send("projectFilePathChanged",{path:_path});
+            mainWindow.webContents.send("projectFilePathChanged",_path,path.parse(path.basename(_path)));
             fileName = path.parse(_path).name;
             folderPath = path.join(path.dirname(_path),fileName);
             fs.mkdir(path.join(folderPath,"frames"),{recursive:true},(err)=>{if(err){console.warn(err)}});
@@ -130,7 +137,7 @@ function createWindow() {
                 console.log("fs",ev, _path);
                 const buff = fs.readFileSync(_path,"utf8");
                 if (buff!=beforedata) {
-                    mainWindow.webContents.send("projectFileUpdate",{path:_path})
+                    mainWindow.webContents.send("projectFileUpdate",_path,path.parse(path.basename(_path)));
                 }
             });
         }
@@ -162,7 +169,7 @@ function createWindow() {
             folderPath = path.join(path.dirname(_path),fileName);
             fs.mkdir(path.join(folderPath,"frames"),{recursive:true},(err)=>{if(err){console.warn(err)}});
             fs.mkdir(path.join(folderPath,"resource"),{recursive:true},(err)=>{if(err){console.warn(err)}});
-            mainWindow.webContents.send("projectFilePathChanged",{path:_path});
+            mainWindow.webContents.send("projectFilePathChanged",_path,path.parse(path.basename(_path)));
         }
         catch(error) {
             return({status:false, message:error.message});
@@ -176,6 +183,33 @@ function createWindow() {
         if (folderPath==null) {console.warn("folder not selected");return;}
         //console.log(frame,data)
         fs.writeFileSync(path.join(folderPath,"./frames/",paddingStr(frame,6)+".png"),data);
+    });
+    ipcMain.handle('cleanExportFrame',async (event,start,end)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        //console.log(frame,data)
+        let folder = path.join(folderPath,"./frames/");
+        console.log(folder)
+        fs.readdir(folder,{withFileTypes:true},(err,dirents)=>{
+            if (err) {console.error(err);}
+            for (let dirent of dirents) {
+                let _path = path.join(folder,dirent.name);
+                if (dirent.isDirectory()) {
+                    fs.rm(_path,{recursive:true},(err)=>{if(err){console.error(err)}});
+                }
+                else {
+                    let flag = false;
+                    let name = path.parse(dirent.name).name;
+                    if (name.length!=6) {flag=true;console.log("len")}
+                    if (isNaN(parseInt(name,10))) {flag=true;console.log("nan")}
+                    if (parseInt(name,10)<start) {flag=true;console.log("start")}
+                    if (parseInt(name,10)>end) {flag=true;console.log("end")}
+                    if (flag) {
+                        console.log(_path,name,start,end,"ng")
+                        fs.rm(_path,(err)=>{if(err){console.error(err)}});
+                    }
+                }
+            }
+        });
     });
     ipcMain.on('evalBW',async (event,program,env)=>{
         BWidcounter++;
@@ -203,20 +237,54 @@ function createWindow() {
         })
         return;
     });
-    ipcMain.on('composeVideo',async (event)=>{
+    ipcMain.on('composeVideo',async (event,start,end,fps,fname)=>{
         if (folderPath==null) {console.warn("folder not selected");return;}
-        exec(`ffmpeg -framerate 30 -i ./frames/%06d.png -r 30 ${fileName}.mp4 -y`,{cwd: path.join(folderPath)}, (err, stdout, stderr) => {
-            const viewWindow = new BrowserWindow({
-                show: true,
-                webPreferences: {
-                    nodeIntegration: false,
-                    contextIsolation: true,
-                    devTools: false,
-                },
-                autoHideMenuBar: true,
-            });
-            viewWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(folderPath,fileName+".mp4")}));
+        let outputfilename = fileName+fname+".mp4"
+        console.log(fileName,fname,".mp4")
+        console.log("output: ",outputfilename)
+        exec(`ffmpeg -framerate ${fps} -start_number ${start} -i ./frames/%06d.png -pix_fmt yuv420p -r ${fps} \"${outputfilename}\" -y`,{cwd: path.join(folderPath)}, (err, stdout, stderr) => {
+            console.log(stdout,stderr,err);
+            mainWindow.webContents.send("videoComposed",outputfilename);
         })
     });
-
+    ipcMain.on('openPathDefault',async (event,_path)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        console.log(path.join(folderPath,_path))
+        shell.openPath(path.join(folderPath,_path));
+    });
+    ipcMain.on('openPathExplorer',async (event,_path)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        console.log(path.join(folderPath,_path))
+        shell.showItemInFolder(path.join(folderPath,_path));
+    });
+    ipcMain.on('openPathSelf',async (event,_path)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        console.log(path.join(folderPath,_path))
+        const viewWindow = new BrowserWindow({
+            show: true,
+            webPreferences: {nodeIntegration: false,contextIsolation: true,devTools: false,},
+            autoHideMenuBar: true,
+            icon: path.join(__dirname, './src/nvg.ico'),
+        });
+        viewWindow.loadURL(url.format({slashes: true,protocol: "file:",pathname:path.join(folderPath,_path)}));
+        viewWindow.setTitle(`Neknaj Video Generator "${_path}"`);
+    });
+    ipcMain.on('getFolder',async (event,_path)=>{
+        if (folderPath==null) {console.warn("folder not selected");return;}
+        let folder = path.join(folderPath,_path);
+        fs.readdir(folder,{withFileTypes:true},(err,dirents)=>{
+            if (err) {console.error(err);}
+            let result = [];
+            for (let dirent of dirents) {
+                //let _path = path.join(folder,dirent.name);
+                if (dirent.isDirectory()) {
+                    result.push([dirent.name,"dir"]);
+                }
+                else {
+                    result.push([path.parse(dirent.name),"dir"]);
+                }
+            }
+            mainWindow.webContents.send("FolderData",_path,result);
+        });
+    });
 };

@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron")
 
 contextBridge.exposeInMainWorld("electron", {
+    onload: (path) => {
+        return ipcRenderer.send('onload',path)
+    },
     openFile: () => {
         return ipcRenderer.invoke('openFile')
     },
@@ -16,13 +19,28 @@ contextBridge.exposeInMainWorld("electron", {
     exportFrame: (frame,data) => {
         return ipcRenderer.invoke('exportFrame',frame,data)
     },
+    cleanExportFrame: (start,end) => {
+        return ipcRenderer.invoke('cleanExportFrame',start,end)
+    },
     on: (channel, func) => {
         ipcRenderer.on(channel, (event, ...args) => func(...args));
     },
     evalBW: (program,env) => {
         return ipcRenderer.send('evalBW',program,env)
     },
-    composeVideo: () => {
-        return ipcRenderer.send('composeVideo')
+    composeVideo: (start,end,fps,fname) => {
+        return ipcRenderer.send('composeVideo',start,end,fps,fname)
+    },
+    openPathDefault: (path) => {
+        return ipcRenderer.send('openPathDefault',path)
+    },
+    openPathExplorer: (path) => {
+        return ipcRenderer.send('openPathExplorer',path)
+    },
+    openPathSelf: (path) => {
+        return ipcRenderer.send('openPathSelf',path)
+    },
+    getFolder: (path) => {
+        return ipcRenderer.send('getFolder',path)
     },
 })

@@ -1,17 +1,20 @@
 const evalBW = (program)=>{window.electron.evalBW(program,null)}
-window.electron.on("projectFilePathChanged", async (arg)=>{
-    ProjecInfo.path = arg.path
-    console.log(arg,"Selected!",new Date())
-    let data = await window.electron.readFile(ProjecInfo.path);
+window.electron.on("projectFilePathChanged", async (path,name)=>{
+    ProjectInfo.path = path;
+    ProjectInfo.name = name;
+    console.log(path,name,"Selected!",new Date());
+    let data = await window.electron.readFile(ProjectInfo.path);
     updateEditorData(data);
+    window.electron.getFolder(".");
 });
 window.electron.on("projectFileUpdate", async (arg)=>{
-    console.log(arg,"Changed!",new Date())
-    let data = await window.electron.readFile(ProjecInfo.path);
+    console.log(arg,"Changed!",new Date());
+    let data = await window.electron.readFile(ProjectInfo.path);
     updateEditorData(data);
+    window.electron.getFolder(".");
 });
 window.electron.on("resultBW", async (object)=>{
-    console.log("result",object)
+    console.log("result",object);
 });
 
 function updateEditorData(data) {
