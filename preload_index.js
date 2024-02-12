@@ -43,4 +43,10 @@ contextBridge.exposeInMainWorld("electron", {
     getFolder: (path) => {
         return ipcRenderer.send('getFolder',path)
     },
+    readFrameCache: (frame) => {
+        return ipcRenderer.invoke('readFrameCache',frame)
+    },
+    saveFrameCache: (frame,data) => {
+        return ipcRenderer.send('saveFrameCache',frame,data)
+    },
 })

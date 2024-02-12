@@ -47,11 +47,17 @@ let fileName = null;
 let folderPath = null;
 
 
+let framesCacheFolder = path.join(app.getPath("userData"),"./Cache/frames/");
+console.log("frames cache",framesCacheFolder);
+
+
+
 function paddingStr(num,len) {
     return (Array(len).join("0")+num).slice(-len);
 }
 
 function createWindow() {
+
     const mainWindow = new BrowserWindow({
         show: false,
         titleBarStyle: 'hidden',
@@ -99,6 +105,7 @@ function createWindow() {
         filewatcher = {close:()=>{}};
         fileName = null;
         folderPath = null;
+        fs.mkdir(framesCacheFolder,{recursive:true},(err)=>{if(err){console.warn(err)}});
     });
 
     ipcMain.handle('readFile',async (event,path)=>{
@@ -262,7 +269,7 @@ function createWindow() {
         console.log(path.join(folderPath,_path))
         const viewWindow = new BrowserWindow({
             show: true,
-            webPreferences: {nodeIntegration: false,contextIsolation: true,devTools: false,},
+            webPreferences: {nodeIntegration: false,contextIsolation: true,devTools: app.isPackaged?false:true,},
             autoHideMenuBar: true,
             icon: path.join(__dirname, './src/nvg.ico'),
         });
@@ -285,6 +292,21 @@ function createWindow() {
                 }
             }
             mainWindow.webContents.send("FolderData",_path,result);
+        });
+    });
+    ipcMain.handle('readFrameCache',async (event,frame)=>{
+        try {
+            return fs.readFileSync(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"));
+        }
+        catch(e) {
+            console.error(e)
+            return false;
+        }
+    });
+    ipcMain.on('saveFrameCache',async (event,frame,data)=>{
+        fs.writeFile(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"),data,(err)=>{
+            if (err) {console.error(err)}
+            mainWindow.webContents.send("frameCacheSaved",frame);
         });
     });
 };

@@ -28,6 +28,7 @@ window.electron.on("FolderData", async (_path,result)=>{
 
 window.electron.on("videoComposed", async (filename)=>{
     console.log("video Composed",filename)
+    window.electron.getFolder(".");
     if (document.querySelector("#autoopenself").checked) {
         window.electron.openPathSelf(filename);
     }
@@ -36,4 +37,15 @@ window.electron.on("videoComposed", async (filename)=>{
     }
 });
 
+window.electron.on("frameCacheSaved", async (frame)=>{
+    TLcache[frame] = "fs";
+});
 
+
+async function getCache(f) {
+    const startTime = performance.now();
+    let data = await window.electron.readFrameCache(f);
+    const endTime = performance.now();
+    console.log(endTime-startTime);
+    return data;
+}

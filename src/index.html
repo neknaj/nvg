@@ -43,6 +43,8 @@
                                     <div id="timebar">
                                         <input id="playbutton" type="radio"><label for="playbutton" id="playbuttonlabel">&#x23ef;</label>
                                         <span id="currentFrame">0</span>
+                                        <span id="passedFrame">0</span>
+                                        <span id="FrameCache">■</span>
                                         <input type="range" id="seekbar" value="0" min="0" max="1000">
                                     </div>
                                 </div>
@@ -279,7 +281,7 @@ TimelineArea.addEventListener("wheel",(e)=>{
         if (e.deltaY>0) {TimelineScale[0]++;}else {TimelineScale[0]--;}
         if (TimelineScale[0]>20) {TimelineScale[0]=20}
         else if (TimelineScale[0]<-20) {TimelineScale[0]=-20}
-        console.log(TimelineScale);
+       // console.log(TimelineScale);
         Timeline.style.setProperty('--tl-x-scale',0.8**TimelineScale[0]);
         Timeline.style.setProperty('--tl-y-scale',0.9**TimelineScale[1]);
     }
@@ -289,7 +291,7 @@ TimelineArea.addEventListener("wheel",(e)=>{
         if (e.deltaY>0) {TimelineScale[1]++;}else {TimelineScale[1]--;}
         if (TimelineScale[1]>10) {TimelineScale[1]=10}
         else if (TimelineScale[1]<-10) {TimelineScale[1]=-10}
-        console.log(TimelineScale);
+      //  console.log(TimelineScale);
         Timeline.style.setProperty('--tl-x-scale',0.8**TimelineScale[0]);
         Timeline.style.setProperty('--tl-y-scale',0.9**TimelineScale[1]);
     }
@@ -438,7 +440,8 @@ function checkExportrange() {
 }
 async function export_frame(i=0,s,e) {
     exporting = true;
-    await drawFrame(i);
+    let drawInfo = await drawFrame(i);
+    console.info(drawInfo);
     updatePlayCtrl(i);
     imgout.toBlob((blob)=>{
         let reader = new FileReader();
@@ -468,7 +471,7 @@ async function export_frame(i=0,s,e) {
 async function makeCache() {
     if (exporting) {setTimeout(makeCache,2000);return false;}
     let flag = false;
-    i = currentFrame+1 ;
+    i = currentFrame ;
     while (i<lastObjFrame) {
         if (TLcache[i]==null) {
             flag = true;
@@ -496,10 +499,12 @@ async function playPreview() {
     if (exporting) {setTimeout(playPreview,2000);return false;}
     const startTime = performance.now();
     updatePlayCtrl();
-    let m = await drawFrame(currentFrame);
+    let drawInfo = await drawFrame(currentFrame);
+    FrameCache.className = "s"+drawInfo;
     const endTime = performance.now()+5;
     if (playInterval) {
         let passedFrame = Math.floor((endTime-startTime)/(1000/VideoFPS))
+        PassedFrame.innerText = passedFrame;
         setTimeout(playPreview,(1000/VideoFPS)-((endTime-startTime)%(1000/VideoFPS)));
         if (currentFrame+passedFrame>seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
         else {
@@ -601,8 +606,8 @@ var timeline = [
     [obj_rect,100,100,30,800,300,"#ff5"],
     [obj_text,0,120,"HELLO!!",50,900,200,50,50],
     [obj_rect,120,100,90,500,700,"#f06"],
-    [obj_time,80,130,30,500,100,"#f06"],
-    [obj_text,10,400,"Neknaj Video Generator",300,600,100,50,50],
+    [obj_time,80,1000,30,500,100,"#f06"],
+    [obj_text,10,1000,"Neknaj Video Generator",300,600,100,50,50],
     [obj_text,30,300,"bem130",1400,600,70,50,50],
 ]
 let timeLineTmp;
@@ -610,9 +615,25 @@ let lastObjFrame;
 let TimelineA;
 let TLTs = 20;
 let TLcache = [];
+let beforeImgdata = null;
+let FrameCache = document.querySelector("#FrameCache");
+let PassedFrame = document.querySelector("#passedFrame");
+let imgoutctx = imgout.getContext("2d");
 let drawFrame = async (f)=>{
     if (f<0) {return 0}
     if (f>=lastObjFrame) {return 0}
+    if (beforeImgdata==f) {
+        return 0;
+    }
+    if (TLcache[f]=="fs") {
+        let rdata = await window.electron.readFrameCache(f);
+        {
+            let data = new ImageData(new Uint8ClampedArray(rdata),1920,1080);
+            imgoutctx.putImageData(data,0,0);
+            beforeImgdata = f;
+            return 2;
+        }
+    }
     if (TLcache[f]==null) {
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
@@ -621,31 +642,33 @@ let drawFrame = async (f)=>{
             }
         }
         //console.table(f,objects)
-        { // 描画する
-            let bufco = document.createElement("canvas");
-            bufco.height = 1080;
-            bufco.width = 1920;
-            bufco.style = imgout.style;
-            bufco.id = imgout.id;
+        // 描画する
+        let bufco = document.createElement("canvas");
+        bufco.height = 1080;
+        bufco.width = 1920;
+        bufco.style = imgout.style;
+        bufco.id = imgout.id;
 
-            let ctx = bufco.getContext("2d");
-            ctx.fillStyle = "black";
-            ctx.rect(0,0,1920,1080);
-            ctx.fill();
-            for (let obj of objects) {
-                let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
-                ctx.drawImage(objf,0,0);
-            }
-            let imgdata = ctx.getImageData(0,0,1920,1080);
-            TLcache[f] = imgdata;
-            imgout.getContext("2d").putImageData(TLcache[f],0,0);
-        // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
+        let ctx = bufco.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.rect(0,0,1920,1080);
+        ctx.fill();
+        for (let obj of objects) {
+            let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
+            ctx.drawImage(objf,0,0);
         }
-        return 1;
+        let imgdata = ctx.getImageData(0,0,1920,1080);
+        TLcache[f] = imgdata;
+        beforeImgdata = f;
+        setFrameCache(f,imgdata);
+        imgoutctx.putImageData(TLcache[f],0,0);
+        return 3;
+        // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
     }
     else {
-        imgout.getContext("2d").putImageData(TLcache[f],0,0);
-        return 2;
+        imgoutctx.putImageData(TLcache[f],0,0);
+        beforeImgdata = f;
+        return 1;
     }
 }
 let cacheFrame = async (f)=>{
@@ -676,6 +699,7 @@ let cacheFrame = async (f)=>{
             }
             let imgdata = ctx.getImageData(0,0,1920,1080);
             TLcache[f] = imgdata;
+            setFrameCache(f,imgdata);
         // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
         }
         return 1;
@@ -684,6 +708,11 @@ let cacheFrame = async (f)=>{
         return 2;
     }
 }
+
+let setFrameCache = (frame,data)=>{
+    window.electron.saveFrameCache(frame,data.data);
+}
+
 var TLstat;
 var makeTLObject = ()=>{
     TimelineObjects.innerHTML = "";
