@@ -303,6 +303,11 @@ function createWindow() {
             return false;
         }
     });
+    ipcMain.on('requestFrameCache',async (event,frame)=>{
+        fs.readFile(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"),(err,data)=>{
+            mainWindow.webContents.send("requestedFrameCache",frame,data);
+        });
+    });
     ipcMain.on('saveFrameCache',async (event,frame,data)=>{
         fs.writeFile(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"),data,(err)=>{
             if (err) {console.error(err)}

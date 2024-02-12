@@ -42,6 +42,42 @@ window.electron.on("frameCacheSaved", async (frame)=>{
 });
 
 
+window.electron.on("requestedFrameCache", async (frame,data)=>{
+    momentCache[frame] = new ImageData(new Uint8ClampedArray(data),1920,1080);
+    momentCacheReq = momentCacheReq.filter((x)=>{x!==frame});
+});
+
+requestFrameCache = (f)=>{
+    let flag = true;
+    for (let i=f+momentCacheSize2;i<f+momentCacheSize;i++) {
+        if (i>lastObjFrame) {break;}
+        if (!momentCacheReq.includes(i)&&(!momentCache.hasOwnProperty(i))) {
+            window.electron.requestFrameCache(i);
+            momentCacheReq.push(i);
+            flag = false;
+        }
+    }
+    if (flag) {
+        for (let i=f;i<f+momentCacheSize2;i++) {
+            if (i>lastObjFrame) {break;}
+            if (!momentCacheReq.includes(i)&&(!momentCache.hasOwnProperty(i))) {
+                window.electron.requestFrameCache(i);
+                momentCacheReq.push(i);
+                flag = false;
+            }
+        }
+    }
+    let mck = Object.keys(momentCache);
+    for (let i of mck) {
+        if (i<f) {
+            delete momentCache[i];
+        }
+    }
+}
+setFrameCache = (frame,data)=>{
+    window.electron.saveFrameCache(frame,data.data);
+}
+
 async function getCache(f) {
     const startTime = performance.now();
     let data = await window.electron.readFrameCache(f);

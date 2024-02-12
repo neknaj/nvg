@@ -427,6 +427,7 @@ function ExportFrame() {
     let start = Math.floor(Number(export_range_start.value));
     let end = Math.floor(Number(export_range_end.value));
     window.electron.cleanExportFrame(start,end);
+    PassedFrame.innerText = 0;
     export_frame(start,start,end);
 }
 function checkExportrange() {
@@ -441,8 +442,10 @@ function checkExportrange() {
 async function export_frame(i=0,s,e) {
     exporting = true;
     let drawInfo = await drawFrame(i);
+    FrameCache.className = "s"+drawInfo;
     console.info(drawInfo);
     updatePlayCtrl(i);
+    requestFrameCache(i)
     imgout.toBlob((blob)=>{
         let reader = new FileReader();
         reader.readAsArrayBuffer(blob);
@@ -505,20 +508,33 @@ async function playPreview() {
     if (playInterval) {
         let passedFrame = Math.floor((endTime-startTime)/(1000/VideoFPS))
         PassedFrame.innerText = passedFrame;
+        //console.log((endTime-startTime)/33-(passedFrame))
         setTimeout(playPreview,(1000/VideoFPS)-((endTime-startTime)%(1000/VideoFPS)));
         if (currentFrame+passedFrame>seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
         else {
             currentFrame+=passedFrame;
         }
+        setTimeout(requestFrameCache,0,currentFrame)
     }
     else {
         setTimeout(playPreview,100);
+        setTimeout(requestFrameCache,0,currentFrame)
     }
     if (playInterval) {
         currentFrame++;
     }
 }
+var setFrameCache = (frame,data)=>{};//tmp decl
+var requestFrameCache = (f)=>{//tmp decl
+    let mck = Object.keys(momentCache);
+    for (let i of mck) {
+        if (i<f) {
+            delete momentCache[i];
+        }
+    }
+};
 setTimeout(makeCache,0)
+setTimeout(requestFrameCache,0,currentFrame)
 setTimeout(playPreview,100)
 
 </script>
@@ -619,11 +635,20 @@ let beforeImgdata = null;
 let FrameCache = document.querySelector("#FrameCache");
 let PassedFrame = document.querySelector("#passedFrame");
 let imgoutctx = imgout.getContext("2d");
+let momentCache = {};
+let momentCacheReq = [];
+let momentCacheSize = 30;
+let momentCacheSize2 = 15;
 let drawFrame = async (f)=>{
     if (f<0) {return 0}
     if (f>=lastObjFrame) {return 0}
     if (beforeImgdata==f) {
         return 0;
+    }
+    if (f in momentCache) {
+        imgoutctx.putImageData(momentCache[f],0,0);
+        beforeImgdata = f;
+        return 1;
     }
     if (TLcache[f]=="fs") {
         let rdata = await window.electron.readFrameCache(f);
@@ -631,7 +656,7 @@ let drawFrame = async (f)=>{
             let data = new ImageData(new Uint8ClampedArray(rdata),1920,1080);
             imgoutctx.putImageData(data,0,0);
             beforeImgdata = f;
-            return 2;
+            return 3;
         }
     }
     if (TLcache[f]==null) {
@@ -662,13 +687,13 @@ let drawFrame = async (f)=>{
         beforeImgdata = f;
         setFrameCache(f,imgdata);
         imgoutctx.putImageData(TLcache[f],0,0);
-        return 3;
+        return 4;
         // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
     }
     else {
         imgoutctx.putImageData(TLcache[f],0,0);
         beforeImgdata = f;
-        return 1;
+        return 2;
     }
 }
 let cacheFrame = async (f)=>{
@@ -700,6 +725,9 @@ let cacheFrame = async (f)=>{
             let imgdata = ctx.getImageData(0,0,1920,1080);
             TLcache[f] = imgdata;
             setFrameCache(f,imgdata);
+            if ((f<currentFrame+momentCacheSize)&&!momentCacheReq.includes(f)&&(!momentCache.hasOwnProperty(f))) {
+                momentCache[f] = imgdata;
+            }
         // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
         }
         return 1;
@@ -709,9 +737,7 @@ let cacheFrame = async (f)=>{
     }
 }
 
-let setFrameCache = (frame,data)=>{
-    window.electron.saveFrameCache(frame,data.data);
-}
+
 
 var TLstat;
 var makeTLObject = ()=>{

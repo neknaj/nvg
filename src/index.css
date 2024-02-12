@@ -108,7 +108,7 @@ body {
 #seekbar {
     position: relative;
     display: inline-block;
-    width: calc(100% - 100px);
+    width: calc(100% - 130px);
 }
 #currentFrame {
     display: inline-block;
@@ -122,9 +122,12 @@ body {
         color: hsl(198, 100%, 77%);
     }
     &.s2 {
-        color: hsl(245, 100%, 77%);
+        color: hsl(214, 100%, 77%);
     }
     &.s3 {
+        color: hsl(287, 100%, 77%);
+    }
+    &.s4 {
         color: hsl(0, 100%, 77%);
     }
 }
