@@ -59,7 +59,7 @@ function createWindow() {
         titleBarStyle: 'hidden',
         titleBarOverlay: true,
         titleBarOverlay: {
-            color: "#2b373d",
+            color: "#0000",
             symbolColor: "#7996b4",
             height: 27,
         },
@@ -220,8 +220,11 @@ function createWindow() {
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
+                sandbox: true,
                 preload: path.join(__dirname, 'preload_background.js'),
                 devTools: app.isPackaged?false:true,
+                zoomFactor: 1,
+                
             },
             icon: path.join(__dirname, './src/nvg.png'),
         });
