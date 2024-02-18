@@ -109,6 +109,8 @@ body {
     position: relative;
     display: inline-block;
     width: calc(100% - 130px);
+    height: 100%;
+    position: sticky;
 }
 #currentFrame {
     display: inline-block;

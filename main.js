@@ -47,10 +47,6 @@ let fileName = null;
 let folderPath = null;
 
 
-let framesCacheFolder = path.join(app.getPath("userData"),"./Cache/frames/");
-console.log("frames cache",framesCacheFolder);
-
-
 
 function paddingStr(num,len) {
     return (Array(len).join("0")+num).slice(-len);
@@ -105,7 +101,6 @@ function createWindow() {
         filewatcher = {close:()=>{}};
         fileName = null;
         folderPath = null;
-        fs.mkdir(framesCacheFolder,{recursive:true},(err)=>{if(err){console.warn(err)}});
     });
 
     ipcMain.handle('readFile',async (event,path)=>{
@@ -292,26 +287,6 @@ function createWindow() {
                 }
             }
             mainWindow.webContents.send("FolderData",_path,result);
-        });
-    });
-    ipcMain.handle('readFrameCache',async (event,frame)=>{
-        try {
-            return fs.readFileSync(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"));
-        }
-        catch(e) {
-            console.error(e)
-            return false;
-        }
-    });
-    ipcMain.on('requestFrameCache',async (event,frame)=>{
-        fs.readFile(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"),(err,data)=>{
-            mainWindow.webContents.send("requestedFrameCache",frame,data);
-        });
-    });
-    ipcMain.on('saveFrameCache',async (event,frame,data)=>{
-        fs.writeFile(path.join(framesCacheFolder,paddingStr(frame,6)+".bin"),data,(err)=>{
-            if (err) {console.error(err)}
-            mainWindow.webContents.send("frameCacheSaved",frame);
         });
     });
 };
