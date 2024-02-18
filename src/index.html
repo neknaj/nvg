@@ -549,21 +549,36 @@ var obj_text = {
     text: (l,t,x,y,s,fin,fout)=>{return "text: "+t},
     textcolor: (l,t,x,y,s,fin,fout)=>{return "#000"},
     color: (l,t,x,y,s,fin,fout)=>{return "#ff5575"},
-    getframe: async (af,rf,len,l,t,x,y,s,fin,fout)=>{
-        let co = document.createElement("canvas");
-        co.height = 1080;
-        co.width = 1920;
-        let ctx = co.getContext("2d");
+    getframe: async (af,rf,g,len,l,t,x,y,s,fin,fout)=>{
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        const innerText = document.createTextNode(t)
+        text.appendChild(innerText)
+        text.setAttribute("x",x);
+        text.setAttribute("y",y);
+        text.setAttribute("font-size",s);
+        text.setAttribute("fill","white");
         if (rf<fin) {
-            ctx.globalAlpha = linerinterpolation(rf/fin,0,1)
+            g.setAttribute("fill-opacity",linerinterpolation(rf/fin,0,1))
         }
         if (rf>=len-fout) {
-            ctx.globalAlpha = linerinterpolation((len-rf-1)/(fout),0,1)
+            g.setAttribute("fill-opacity",linerinterpolation((len-rf-1)/(fout),0,1))
         }
-        ctx.font = `${s}px serif`;
-        ctx.fillStyle = "white";
-        ctx.fillText(t,x,y);
-        return await canvas2image(co);
+        g.appendChild(text);
+        
+        // let co = document.createElement("canvas");
+        // co.height = 1080;
+        // co.width = 1920;
+        // let ctx = co.getContext("2d");
+        // if (rf<fin) {
+        //     ctx.globalAlpha = linerinterpolation(rf/fin,0,1)
+        // }
+        // if (rf>=len-fout) {
+        //     ctx.globalAlpha = linerinterpolation((len-rf-1)/(fout),0,1)
+        // }
+        // ctx.font = `${s}px serif`;
+        // ctx.fillStyle = "white";
+        // ctx.fillText(t,x,y);
+        return;
     },
 }
 var obj_rect = {
@@ -571,17 +586,15 @@ var obj_rect = {
     text: (l,x,y,w,h,c)=>{return "rect"},
     textcolor: (l,x,y,w,h,c)=>{return "#000"},
     color: (l,x,y,w,h,c)=>{return "#88ff55"},
-    getframe: async (af,rf,len,x,y,w,h,c)=>{
-        let co = document.createElement("canvas");
-        co.height = 1080;
-        co.width = 1920;
-        let ctx = co.getContext("2d");
-        ctx.fillStyle = c;
-        ctx.strokeStyle = c;
-        ctx.rect(x,y,w,h);
-        ctx.fill();
-        ctx.stroke();
-        return await canvas2image(co);
+    getframe: async (af,rf,g,len,x,y,w,h,c)=>{
+        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute("x",x);
+        rect.setAttribute("y",y);
+        rect.setAttribute("width",w);
+        rect.setAttribute("height",h);
+        rect.setAttribute("fill",c);
+        g.appendChild(rect);
+        return;
     },
 }
 var obj_time = {
@@ -589,19 +602,19 @@ var obj_time = {
     text: (l,x,y,s)=>{return "time"},
     textcolor: (l,x,y,s)=>{return "#000"},
     color: (l,x,y,s)=>{return "#c0c505"},
-    getframe: async (af,rf,len,l,x,y,s)=>{
-        let co = document.createElement("canvas");
-        co.height = 1080;
-        co.width = 1920;
-        let ctx = co.getContext("2d");
-        ctx.font = `${s}px serif`;
+    getframe: async (af,rf,g,len,l,x,y,s)=>{
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
         let padding = (num,len)=>{
             return (Array(len).join("0")+num).slice(-len);
         }
         let second = Math.floor(af/VideoFPS*100)/100;
-        ctx.fillStyle = "white";
-        ctx.fillText(second,x,y);
-        return await canvas2image(co);
+        const innerText = document.createTextNode(second)
+        text.appendChild(innerText)
+        text.setAttribute("x",x);
+        text.setAttribute("y",y);
+        text.setAttribute("font-size",s);
+        text.setAttribute("fill","white");
+        g.appendChild(text);
     },
 }
 
@@ -616,14 +629,26 @@ async function canvas2image(canvas){
         }
     )
 }
+async function svg2image(svg){
+    const image = new Image();
+    return new Promise(
+        (resolve) => {
+            image.onload = () => {
+                resolve(image);
+            }
+            image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(svg))));
+            //console.log(new XMLSerializer().serializeToString(svg))
+        }
+    )
+}
 
 var timeline = [
     [obj_rect,10,1,30,800,300,"#ff5"],
     [obj_rect,100,100,30,800,300,"#ff5"],
     [obj_text,0,120,"HELLO!!",50,900,200,50,50],
     [obj_rect,120,100,90,500,700,"#f06"],
-    [obj_time,80,1000,30,500,100,"#f06"],
-    [obj_text,10,1000,"Neknaj Video Generator",300,600,100,50,50],
+    [obj_time,80,300,30,500,100,"#f06"],
+    [obj_text,10,300,"Neknaj Video Generator",300,600,100,50,50],
     [obj_text,30,300,"bem130",1400,600,70,50,50],
 ]
 let timeLineTmp;
@@ -678,10 +703,17 @@ let drawFrame = async (f)=>{
         ctx.fillStyle = "black";
         ctx.rect(0,0,1920,1080);
         ctx.fill();
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute("viewBox","0 0 1920 1080")
+        svg.setAttribute("width",1920);
+        svg.setAttribute("height",1080);
         for (let obj of objects) {
-            let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
-            ctx.drawImage(objf,0,0);
+            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+            await obj.func.getframe(f,f-obj.start,g,obj.len,...obj.args);
+            svg.appendChild(g);
         }
+        ctx.drawImage(await svg2image(svg),0,0);
+        
         let imgdata = ctx.getImageData(0,0,1920,1080);
         TLcache[f] = imgdata;
         beforeImgdata = f;
@@ -718,13 +750,20 @@ let cacheFrame = async (f)=>{
             ctx.fillStyle = "black";
             ctx.rect(0,0,1920,1080);
             ctx.fill();
+            const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+            svg.setAttribute("viewBox","0 0 1920 1080")
+            svg.setAttribute("width",1920);
+            svg.setAttribute("height",1080);
             for (let obj of objects) {
-                let objf = await obj.func.getframe(f,f-obj.start,obj.len,...obj.args);
-                ctx.drawImage(objf,0,0);
+                const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                await obj.func.getframe(f,f-obj.start,g,obj.len,...obj.args);
+                svg.appendChild(g);
             }
+            ctx.drawImage(await svg2image(svg),0,0);
+        
             let imgdata = ctx.getImageData(0,0,1920,1080);
             TLcache[f] = imgdata;
-            setFrameCache(f,imgdata);
+            //setFrameCache(f,imgdata);
             if ((f<currentFrame+momentCacheSize)&&!momentCacheReq.includes(f)&&(!momentCache.hasOwnProperty(f))) {
                 momentCache[f] = imgdata;
             }
