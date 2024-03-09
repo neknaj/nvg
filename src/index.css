@@ -116,6 +116,10 @@ body {
     display: inline-block;
     width: 50px;
 }
+#procTime {
+    display: inline-block;
+    width: 20px;
+}
 #FrameCache {
     &.s0 {
         color: hsl(81, 100%, 77%);

@@ -432,6 +432,8 @@ function ExportFrame() {
     let start = Math.floor(Number(export_range_start.value));
     let end = Math.floor(Number(export_range_end.value));
     window.electron.cleanExportFrame(start,end);
+    procTime.innerText = "-";
+    FrameCache.className = "s4";
     export_frame(start,start,end);
 }
 function checkExportrange() {
@@ -446,16 +448,13 @@ function checkExportrange() {
 async function export_frame(i=0,s,e) {
     exporting = true;
     let drawInfo = await drawFrame(i);
-    FrameCache.className = "s"+drawInfo;
-    console.info(drawInfo);
     updatePlayCtrl(i);
     imgout.toBlob((blob)=>{
         let reader = new FileReader();
         reader.readAsArrayBuffer(blob);
         reader.onload = ()=> {
-            var buffer = reader.result;
-            console.log("export",i);
-            window.electron.exportFrame(i,new Uint8Array(buffer));
+            //console.log("export",i);
+            window.electron.exportFrame(i,new Uint8Array(reader.result));
         }
     });
     if (i<e&&!stopExporting) {
@@ -613,13 +612,13 @@ var timeline = [
     [obj_text,30,1700,"bem130",1400,600,70,50,50],
 ]
 for (let t=0;t<100;t++) {
-    timeline.push([obj_text,t*9+10,t*10+50,"HELLO!!",50+((t+10)%100*10),100+(t%20*50),50,200,300]);
+    timeline.push([obj_text,t*300+10,200,"HELLO!!",50+((t+10)%100*10),100+(t%20*50),50,100,100]);
 }
 
 let timeLineTmp;
 let lastObjFrame;
 let TimelineA;
-let TLTs = 1000;
+let TLTs = 20;
 let beforeImgdata = null;
 let FrameCache = document.querySelector("#FrameCache");
 let procTime = document.querySelector("#procTime");
@@ -634,6 +633,7 @@ let drawFrame = async (f)=>{
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
             if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
+                //console.log(lastObjFrame,layer,f,(lastObjFrame+1)*layer+f)
                 objects.push(TimelineA[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
             }
         }
@@ -689,11 +689,11 @@ var makeTLObject = ()=>{
     }
     export_range_start.max = lastObjFrame;
     export_range_end.max = lastObjFrame;
-    console.log(lastObjFrame);
-    console.table(TimelineA);
+    //console.log(lastObjFrame);
+    //console.table(TimelineA);
     Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
     seekbar.max = lastObjFrame;
-    timeLineTmp = new Uint8Array((lastObjFrame+1)*TLTs).fill(0);
+    timeLineTmp = new Uint32Array((lastObjFrame+1)*TLTs).fill(0);
     let searchLayer = (obj)=>{ // オブジェクトを置くべきレイヤーを探す
         let layer = 0;
         while (layer<TLTs) {
