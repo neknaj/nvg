@@ -1,12 +1,8 @@
-const { contextBridge, ipcRenderer, webFrame } = require("electron")
+const { contextBridge, ipcRenderer } = require("electron")
 
 contextBridge.exposeInMainWorld("electron", {
     onload: (path) => {
-        webFrame.setVisualZoomLevelLimits(1,1);
         return ipcRenderer.send('onload',path)
-    },
-    onresize: ()=>{
-        webFrame.setZoomFactor(1);
     },
     openFile: () => {
         return ipcRenderer.invoke('openFile')
