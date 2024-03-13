@@ -72,6 +72,23 @@ body {
 .imgOutWindow {
     height: 100%;
 }
+.imgOutArea {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    position: relative;
+    padding: 0;
+    margin: 0;
+}
+.imgOutArea>canvas {
+    cursor: crosshair;
+    touch-action: none;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    transform-origin: top left;
+    border: 5px solid rgb(255, 157, 0);
+}
 #underbar {
     border-top: 1px solid white;
     width: 100%;
@@ -82,13 +99,13 @@ body {
     overflow-y: hidden;
 }
 #timebar_padding {
-    height: 100%;
+    height: calc(100% - 25px);
 }
 
 #timebar {
     position: relative;
     width: 100%;
-    bottom: 20px;
+    top: 4px;
     left: -5px;
     padding-left: 5px;
 }

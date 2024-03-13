@@ -38,8 +38,10 @@
                         <div class="resizer_Hcontainer" style="height: 100%;">
                             <div class="resizer_content" style="flex-basis: 70%;" id="imgOutArea">
                                 <div class="imgOutWindow">
-                                    <div id="timebar_padding"></div>
-                                    <canvas id="imgOut" style="transform: scale(0,0);"></canvas>
+                                    <div id="timebar_padding" class="imgOutArea">
+                                        <div id="imgOutPadding"></div>
+                                        <canvas id="imgOut" style="transform: scale(0,0);"></canvas>
+                                    </div>
                                     <div id="timebar">
                                         <input id="playbutton" type="radio"><label for="playbutton" id="playbuttonlabel">&#x23ef;</label>
                                         <span id="currentFrame">0</span>
@@ -209,33 +211,38 @@ var imgout = document.getElementById("imgOut");
 
 let imgOutArea = document.getElementById("imgOutArea");
 // resize window
+var canvasScale = 0;
 function resize() {
     {
+        console.log("resize")
+        let scale = 1.05**canvasScale;
         const dw = videoConfig.width;
         const dh = videoConfig.height;
-        let rw = 0;let rh = 0;
         parent = imgOutArea.getBoundingClientRect();
-        let bottom_area = 35;
         let ww = parent.width;
-        let wh = parent.height-bottom_area;
-        let csc = 1
-        hcsc = ww/dw; wcsc = wh/dh;
-        if (hcsc>wcsc) {
-            csc = wcsc; rw = (ww - dw*csc)/2;
+        let wh = parent.height;
+        {
+            let ws = (ww-25)/dw;
+            let hs = (wh-25)/dh;
+            console.log(ws,hs)
+            scale *= Math.min(ws,hs);
+        }
+        imgOutPadding.style.width = `${dw*scale+20}px`;
+        imgOutPadding.style.height = `${dh*scale+20}px`;
+        if (dw*scale+20<=ww&&dh*scale+20<=wh) {
+            console.log("a")
+            imgout.style.transform = "translate(-50%,-50%) scale("+scale.toString()+","+scale.toString()+")";
+            imgout.style.transformOrigin = "center center";
+            imgout.style.left = "50%";
+            imgout.style.top = "50%";
         }
         else {
-            csc = hcsc; rh = (wh - dh*csc)/2;
+            console.log("b")
+            imgout.style.transform = "scale("+scale.toString()+","+scale.toString()+")";
+            imgout.style.transformOrigin = "top left";
+            imgout.style.left = "10px";
+            imgout.style.top = "10px";
         }
-        document.getElementById("imgOut").style.marginTop = (rh).toString()+"px";
-        document.getElementById("imgOut").style.marginBottom = (rh).toString()+"px";
-        document.getElementById("imgOut").style.marginLeft = (rw).toString()+"px";
-        document.getElementById("imgOut").style.marginRight = (rw).toString()+"px";
-        document.getElementById("imgOut").style.transform = "scale("+csc.toString()+","+csc.toString()+")";
-    }
-    {
-        Timeline.style.setProperty('--tl-timebar-height',
-            Math.max(TimelineArea.getBoundingClientRect().height-13)+"px"
-        );
     }
 };
 window.onresize = resize;
@@ -296,6 +303,16 @@ TimelineArea.addEventListener("wheel",(e)=>{
         Timeline.style.setProperty('--tl-y-scale',0.8**TimelineScale[1]);
     }
     else {
+    }
+})
+imgOutArea.addEventListener("wheel",(e)=>{
+    if (e.ctrlKey) {
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {canvasScale--;}else {canvasScale++;}
+        if (canvasScale>50) {canvasScale=50}
+        else if (canvasScale<-50) {canvasScale=-50}
+        resize();
     }
 })
 
