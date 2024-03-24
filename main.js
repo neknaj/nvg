@@ -1,6 +1,6 @@
 if (process.env.NODE_ENV=="debug") {console.log("Start in debug mode")};
 
-const { app, Menu, BrowserWindow , ipcMain, dialog, shell, MessageChannelMain} = require('electron');
+const { app, Menu, BrowserWindow , ipcMain, dialog, shell, MessageChannelMain } = require('electron');
 const path = require('path');
 const fs = require("fs");
 const url = require("url");
