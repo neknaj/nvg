@@ -5,12 +5,13 @@
   "description": "テキストデータを元に動画を生成するソフト",
   "main": "main.js",
   "scripts": {
-    "start": "electron-forge start",
-    "debug": "cross-env NODE_ENV=\"debug\" npm run start",
-    "release": "cross-env NODE_ENV=\"release\" npm run start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish"
+    "start": "npm run updatelib && electron-forge start",
+    "debug": "npm run updatelib && cross-env NODE_ENV=\"debug\" npm run start",
+    "release": "npm run updatelib && cross-env NODE_ENV=\"release\" npm run start",
+    "package": "npm run updatelib && electron-forge package",
+    "make": "npm run updatelib && electron-forge make",
+    "publish": "npm run updatelib && electron-forge publish",
+    "updatelib": "npm install && npm run make -prefix node_modules\\nvgl"
   },
   "keywords": [],
   "author": {
@@ -19,20 +20,22 @@
   },
   "license": "MIT",
   "dependencies": {
-    "ace-builds": "^1.32.5",
     "electron-squirrel-startup": "^1.0.0",
-    "neknaj-jsonviewer": "^1.1.0"
+    "mermaid": "^10.9.0",
+    "monaco-editor": "^0.46.0",
+    "neknaj-jsonviewer": "^1.1.0",
+    "nvgl": "github:neknaj/nvgl"
   },
   "devDependencies": {
-    "electron": "^26.6.8",
-    "electron-forge": "^5.2.4",
     "@electron-forge/cli": "^6.4.2",
     "@electron-forge/maker-deb": "^6.4.2",
     "@electron-forge/maker-rpm": "^6.4.2",
     "@electron-forge/maker-squirrel": "^6.4.2",
     "@electron-forge/maker-zip": "^6.4.2",
     "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "electron": "^26.6.8",
+    "electron-forge": "^5.2.4"
   },
   "config": {
     "forge": {
@@ -42,7 +45,9 @@
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
-          "platforms": ["win32"]
+          "platforms": [
+            "win32"
+          ]
         }
       ]
     }

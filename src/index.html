@@ -4,12 +4,11 @@
         <meta charset="UTF-8" />
         <title>Neknaj Video Generator</title>
         <link rel="stylesheet" href="index.css" />
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval';" />
         <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
         <script src="logarea.js"></script>
         <script src="index.js"></script>
-        <script src="../node_modules/ace-builds/src/ace.js"></script>
-        <script src="../node_modules/ace-builds/src/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
         <script src="../node_modules/neknaj-jsonviewer/jsonviewer.js"></script>
         <link rel="stylesheet" href="../node_modules/neknaj-jsonviewer/jsonviewer.css" />
         <link rel="stylesheet" href="logarea.css" />
@@ -246,35 +245,78 @@ function resize() {
     }
 };
 window.onresize = resize;
-window.onload = ()=>{
+window.onload = async ()=>{
     imgout.height = videoConfig.height;
     imgout.width = videoConfig.width;
     resize();
     SetWindowTitle();
-    initEditor();
     Previewzero();
+    await initnvgl();
+    initEditor();
     window.electron.onload();
 };
+
+var nvgl,ScopeMarker;
+async function initnvgl() {
+    nvgl = {}
+    {
+        const module = await import("../node_modules/nvgl/pkg/nvgl.js");
+        await module.default();
+        module._start?module._start():module.main?module.main():(()=>{console.warn(`Entry point not Found: _start() or main()`)})();
+        nvgl.parser = module;
+    }
+    {
+        const module = await import("../node_modules/nvgl/evalNVGL.js");
+        nvgl.eval = module.default;
+    }
+    {
+        const module = await import("../node_modules/nvgl/astgraphNVGL.js");
+        await module.init("../mermaid/dist/mermaid.esm.mjs");
+        nvgl.astgraph = module.default;
+        ScopeMarker = module.ScopeMarker;
+    }
+}
 function initEditor() {
-    editor = ace.edit("editor");
-    editor.setTheme("ace/theme/cobalt");
-   // editor.getSession().setMode("ace/mode/javascript");
-    editor.getSession().setMode(new (ace.require("ace/mode/javascript").Mode)())
-    editor.container.addEventListener("keydown",(e)=>{
-        if (exporting) {e.preventDefault();return false;}
-        if (e.ctrlKey&&e.key=="o") {
-            let cursor = editor.selection.getCursor()
-            if (ProjectInfo.path!=null) {
-                location.href = ["vscode://file/",ProjectInfo.path,":"+(cursor.row+1)+":"+(cursor.column+1)].join("");
+
+    require.config({ paths: { vs: "../node_modules/monaco-editor/min/vs" } });
+
+    require(["vs/editor/editor.main"], async function () {
+        const module = await import("../node_modules/nvgl/nvgl_highlight.js");
+        monaco.languages.register({ id: "nvgl" });
+
+        monaco.languages.setMonarchTokensProvider("nvgl", module.tokenizer);
+        monaco.editor.defineTheme("nvgl-dark", module.theme);
+
+        input = monaco.editor.create(document.querySelector("#editor"),{
+            language: "nvgl",
+            readOnly: false,
+            theme: "nvgl-dark",
+            roundedSelection: true,
+            lineNumbers: "on",
+            automaticLayout: true,
+            fontSize: 12,
+        });
+        input.getModel().onDidChangeContent((e)=>{
+            requestAnimationFrame(update); // for debug
+            ScopeMarker(0,0);
+            if (autosave.checked&&ProjectInfo.path!=null) {
+                window.electron.saveFile(ProjectInfo.path,editor.getValue());
             }
-        }
-    })
-    editor.getSession().on('change', function(){
-        if (autosave.checked&&ProjectInfo.path!=null) {
-            window.electron.saveFile(ProjectInfo.path,editor.getValue());
-        }
+        })
+        input.setValue(fRead("../node_modules/nvgl/sample.nvgl"));
     });
 }
+function fRead(filename) {
+    var hr = new XMLHttpRequest();
+    hr.open("GET", filename, false);
+    hr.send(null);
+    if (hr.status == 200 || hr.status == 304) {
+        return hr.responseText.replace(/\r\n/g, "\n");
+    }
+    else {
+        throw "err " + filename;
+    }
+};
 </script>
 <script> /* Timeline */
 let TimelineArea = document.getElementById("timelinearea");
