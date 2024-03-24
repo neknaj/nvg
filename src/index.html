@@ -256,7 +256,7 @@ window.onload = async ()=>{
     window.electron.onload();
 };
 
-var nvgl,ScopeMarker;
+var nvgl,ScopeMarker,input;
 async function initnvgl() {
     nvgl = {}
     {
@@ -297,7 +297,7 @@ function initEditor() {
             fontSize: 12,
         });
         input.getModel().onDidChangeContent((e)=>{
-            requestAnimationFrame(update); // for debug
+            // requestAnimationFrame(update); // for debug
             ScopeMarker(0,0);
             if (autosave.checked&&ProjectInfo.path!=null) {
                 window.electron.saveFile(ProjectInfo.path,editor.getValue());
@@ -384,7 +384,7 @@ document.onkeydown = (e)=>{
         }
     }
     if (exporting) {e.preventDefault();return false;}
-    if (e.keyCode==32&&!editor.isFocused()) {
+    if (e.keyCode==32&&!input.hasTextFocus()) {
         togglePlayPreview();
     }
     if (!e.shiftKey&&e.keyCode==39) {
