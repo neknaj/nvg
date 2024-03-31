@@ -614,7 +614,7 @@ let drawFrame = async (f,nocache=false)=>{
         svg.setAttribute("width",1920);
         svg.setAttribute("height",1080);
         for (let obj of objects) {
-            const res = await obj.frameFunc(f);
+            const res = await obj.frameFunc(f-obj.range.start);
             const g = document.createElementNS('http://www.w3.org/2000/svg','g');
             g.appendChild(res);
             svg.appendChild(g);

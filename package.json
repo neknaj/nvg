@@ -11,7 +11,7 @@
     "package": "npm run updatelib && electron-forge package",
     "make": "npm run updatelib && electron-forge make",
     "publish": "npm run updatelib && electron-forge publish",
-    "updatelib": "npm install && npm run make -prefix node_modules\\nvgl"
+    "updatelib": "npm install && npm run make -prefix node_modules/nvgl"
   },
   "keywords": [],
   "author": {
