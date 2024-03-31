@@ -46,6 +46,7 @@ const val = {
     tan: (_,args)=>{return Math.tan(...args)},
     tanh: (_,args)=>{return Math.tanh(...args)},
     trunc: (_,args)=>{return Math.trunc(...args)},
+    normalize: (_,args)=>{return Math.min(Math.max(args,0),1)},
 }
 
 

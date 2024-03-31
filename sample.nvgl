@@ -1,6 +1,6 @@
 # sample
 @imports {
-    SVG,Math,String
+    SVG,Math,String,Debug
 }
 @includes {
 }
@@ -13,13 +13,6 @@
         fps:30,
     };
 }
-
-@timeline {
-    Text(start:0,len:1,x:200,y:200,text:"スペースキーを押して再生");
-    TypingText(start:0,len:100,x:100,y:400,text:"Hello",size:150);
-    TypingText(start:20,len:100-20,x:200,y:600,text:"Neknaj Video Generator",color:"hsl(230,40%,70%)",size:150);
-}
-
 @obj Text {
     &conf {
         start      : 0    :number,
@@ -31,15 +24,19 @@
         color      : #fff :color,
         borderColor: #888 :color,
         border     : 0    :number,
+        out        : 0    :number,
     }
     &init   {!return {};}
     &range  {!return {start:start,length:len};}
     &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
     &frame(f) {
         !return text
-                -> SVG::Text(x,y,size)
+                -> SVG::LFText(x,y,size)
+                -> SVG::Font(font)
                 -> SVG::Fill(color)
-                -> SVG::Stroke(borderColor,border);
+                -> SVG::Stroke(borderColor,border)
+                -> SVG::addAttr("fill-opacity",Math::min(len-f-1,out)/out)
+                -> SVG::addAttr("stroke-opacity",Math::min(len-f-1,out)/out);
     }
 }
 @obj TypingText {
@@ -54,14 +51,64 @@
         borderColor: #888 :color,
         border     : 0    :number,
         speed      : 10   :number,
+        out        : 20    :number,
     }
     &init   {!return {};}
     &range  {!return {start:start,length:len};}
     &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
     &frame(f) {
         !return text -> String::slice(0,f*speed/fps)
-                -> SVG::Text(x,y,size)
+                -> SVG::LFText(x,y,size)
+                -> SVG::Font(font)
                 -> SVG::Fill(color)
-                -> SVG::Stroke(borderColor,border);
+                -> SVG::Stroke(borderColor,border)
+                -> SVG::addAttr("transform","rotate("+-Math::min((len-f)*3-90,0)+" 0 0)")
+                -> SVG::addAttr("fill-opacity",Math::min(len-f-1,out)/out)
+                -> SVG::addAttr("stroke-opacity",Math::min(len-f-1,out)/out);
     }
+}
+@obj borderedTypingText {
+    &conf {
+        start      : 0    :number,
+        len        : 0    :number,
+        text       : ""   :text,
+        x          : 10   :number,
+        y          : 100  :number,
+        size       : 100  :number,
+        color      : #fff :color,
+        borderColor: #888 :color,
+        border     : 2    :number,
+        speed      : 10   :number,
+        out        : 20    :number,
+    }
+    &init   {!return {};}
+    &range  {!return {start:start,length:len};}
+    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
+    &frame(f) {
+        thresh_time <: text::length*fps/speed;
+        # Debug::print(out,len,f,len-f-1,Math::min(len-f-1,out)/out);
+        !if (f>thresh_time) {
+            !return text -> String::slice(0,f*speed/fps)
+                    -> SVG::LFText(x,y,size)
+                    -> SVG::Font(font)
+                    -> SVG::Fill(color)
+                    -> SVG::addAttr("fill-opacity",Math::normalize((f-thresh_time)*0.05)*Math::min(len-f-1,out)/out)
+                    -> SVG::Stroke(borderColor,border)
+                    -> SVG::addAttr("stroke-opacity",Math::normalize(1-(f-thresh_time)*0.05)*Math::min(len-f-1,out)/out);
+        }
+        else {
+            !return text -> String::slice(0,f*speed/fps)
+                    -> SVG::LFText(x,y,size)
+                    -> SVG::Font(font)
+                    -> SVG::Stroke(borderColor,border)
+                    -> SVG::addAttr("stroke-opacity",Math::min(len-f-1,out)/out);
+        }
+    }
+}
+@timeline {
+    Text(start:0,len:1,x:200,y:200,text:"Spaceキーを押して再生",font:"Yu Mincho");
+    TypingText(start:0,len:370-0,x:150,y:350,text:"Hello",color:"hsl(130,100%,90%)",size:150,font:"Noto Serif Thin");
+    borderedTypingText(start:20,len:470-20,x:130,y:600,text:"Neknaj Video Generator",borderColor:#fff,color:"hsl(230,100%,90%)",size:150,font:"Noto Serif Thin");
+    TypingText(start:150,len:370-150,x:180,y:800,text:"a Video Editing Software\n that allows you to create videos by Writing Programs",borderColor:#fff,color:"hsl(10,100%,90%)",size:50,font:"Courier",speed:15);
+    borderedTypingText(start:380,len:470-380,x:1530,y:800,text:"Bem130",borderColor:#fff,color:"hsl(230,100%,90%)",size:70,font:"Noto Serif Thin");
 }

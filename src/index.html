@@ -46,7 +46,7 @@
                                         <span id="currentFrame">0</span>
                                         <span id="procTime">0</span>
                                         <span id="FrameCache">■</span>
-                                        <input type="range" id="seekbar" value="0" min="0" max="1000">
+                                        <input type="range" id="seekbar" value="0" min="0" max="1000" step="1">
                                     </div>
                                 </div>
                             </div>
@@ -281,7 +281,7 @@ async function initEditor() {
             roundedSelection: true,
             lineNumbers: "on",
             automaticLayout: true,
-            fontSize: 12,
+            fontSize: 10,
         });
         input.getModel().onDidChangeContent((e)=>{
             // requestAnimationFrame(update); // for debug
@@ -582,13 +582,14 @@ let procTime = document.querySelector("#procTime");
 let imgoutctx = imgout.getContext("2d");
 let drawFrame = async (f,nocache=false)=>{
     if (f<0) {return 0}
-    if (f>=lastObjFrame) {return 0}
+    if (f>lastObjFrame) {return 0}
     if (!nocache&&beforeImgdata==f) {
         return 0;
     }
     {
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
+            //console.log((lastObjFrame+1)*layer+f,f,timeLineTmp[(lastObjFrame+1)*layer+f])
             if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
                 objects.push(Project.timeline[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
             }
@@ -609,11 +610,15 @@ let drawFrame = async (f,nocache=false)=>{
         svg.setAttribute("viewBox","0 0 1920 1080")
         svg.setAttribute("width",1920);
         svg.setAttribute("height",1080);
+              //  console.log(f,objects)
         for (let obj of objects) {
-            const res = await obj.frameFunc(f-obj.range.start);
-            const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-            g.appendChild(res);
-            svg.appendChild(g);
+            try {
+                const res = await obj.frameFunc(f-obj.range.start);
+                const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                g.appendChild(res);
+                svg.appendChild(g);
+            }
+            catch (e) {console.warn(e);}
         }
         ctx.drawImage(await svg2image(svg),0,0);
         imgoutctx.putImageData(ctx.getImageData(0,0,1920,1080),0,0)
