@@ -1,0 +1,38 @@
+# sample
+@imports {
+    SVG
+}
+@includes {
+}
+@init {
+    !return {
+        size: {
+            width:1920,
+            height:1080,
+        },
+        fps:30,
+    };
+}
+@obj Text {
+    &conf {
+        start:0:number,
+        len:0:number,
+        text:"":text,
+        x: 10:number,
+        y:100:number,
+        size:100:number,
+        color:#fff:color,
+    }
+    &init {!return {};}
+    &range {!return {start:start,length:len};}
+    &tlconf {
+        !return {text:"Text: " + text,color:#ff9595,textcolor:#000};
+    }
+    &frame(f) {
+        !return SVG::Text(text,x,y,size,color);
+    }
+}
+@timeline {
+    Text(start:0,text:"hello world",len:50,y:250);
+    Text(start:10,text:"hello world"+"!",len:50,color:"#9f9");
+}

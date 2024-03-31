@@ -52,7 +52,8 @@
                             </div>
                             <div class="resizer_splitter"></div>
                             <div class="resizer_content" style="flex-basis: 30%;">
-                                <div id="editor" style="height: 100%"></div>
+                                <button onclick="InitCode()" style="height: 20px;">Update</button>
+                                <div id="editor" style="height: calc(100% - 20px)"></div>
                             </div>
                         </div>
                     </div>
@@ -197,12 +198,6 @@ document.getElementById("savefileas").onclick = (e)=>{
 }
 let autosave = document.getElementById("autosave");
 
-
-
-let videoConfig = {
-    "height": 1080,
-    "width": 1920,
-}
 var exporting = false;
 var stopExporting = false;
 
@@ -215,14 +210,14 @@ function resize() {
     {
         console.log("resize")
         let scale = 1.05**canvasScale;
-        const dw = videoConfig.width;
-        const dh = videoConfig.height;
+        const dw = videoConfig.size.width;
+        const dh = videoConfig.size.height;
         parent = imgOutArea.getBoundingClientRect();
         let ww = parent.width;
         let wh = parent.height;
         {
-            let ws = (ww-25)/dw;
-            let hs = (wh-25)/dh;
+            let ws = (ww-30)/dw;
+            let hs = (wh-30-30)/dh;
             console.log(ws,hs)
             scale *= Math.min(ws,hs);
         }
@@ -246,13 +241,9 @@ function resize() {
 };
 window.onresize = resize;
 window.onload = async ()=>{
-    imgout.height = videoConfig.height;
-    imgout.width = videoConfig.width;
-    resize();
-    SetWindowTitle();
-    Previewzero();
     await initnvgl();
-    initEditor();
+    await initEditor();
+    Previewzero();
     window.electron.onload();
 };
 
@@ -267,7 +258,7 @@ async function initnvgl() {
     }
     {
         const module = await import("../node_modules/nvgl/evalNVGL.js");
-        nvgl.eval = module.default;
+        nvgl.init = module.init;
     }
     {
         const module = await import("../node_modules/nvgl/astgraphNVGL.js");
@@ -276,7 +267,7 @@ async function initnvgl() {
         ScopeMarker = module.ScopeMarker;
     }
 }
-function initEditor() {
+async function initEditor() {
 
     require.config({ paths: { vs: "../node_modules/monaco-editor/min/vs" } });
 
@@ -303,7 +294,8 @@ function initEditor() {
                 window.electron.saveFile(ProjectInfo.path,editor.getValue());
             }
         })
-        input.setValue(fRead("../node_modules/nvgl/sample.nvgl"));
+        input.setValue(fRead("../sample.nvgl"));
+        await InitCode();
     });
 }
 function fRead(filename) {
@@ -394,6 +386,10 @@ document.onkeydown = (e)=>{
     if (!e.shiftKey&&e.keyCode==37) {
         currentFrame--;
         updatePlayCtrl();
+    }
+    if (e.keyCode == 82 && e.ctrlKey && !e.shiftKey) {
+        requestAnimationFrame(InitCode);
+        e.preventDefault();
     }
 }
 </script>
@@ -550,88 +546,11 @@ async function playPreview() {
         currentFrame++;
     }
 }
-setTimeout(playPreview,100)
+setTimeout(playPreview,1000)
 
 </script>
 <script> // TimeLine Objects
 
-function linerinterpolation(p,v1,v2) {
-    return (1-p)*v1+p*v2
-}
-
-var obj_text = {
-    length: (l,t,x,y,s,fin,fout)=>{return l},
-    text: (l,t,x,y,s,fin,fout)=>{return "text: "+t},
-    textcolor: (l,t,x,y,s,fin,fout)=>{return "#000"},
-    color: (l,t,x,y,s,fin,fout)=>{return "#ff5575"},
-    getframe: async (af,rf,g,len,l,t,x,y,s,fin,fout)=>{
-        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-        const innerText = document.createTextNode(t)
-        text.appendChild(innerText)
-        text.setAttribute("x",x);
-        text.setAttribute("y",y);
-        text.setAttribute("font-size",s);
-        text.setAttribute("fill","white");
-        if (rf<fin) {
-            g.setAttribute("fill-opacity",linerinterpolation(rf/fin,0,1))
-        }
-        if (rf>=len-fout) {
-            g.setAttribute("fill-opacity",linerinterpolation((len-rf-1)/(fout),0,1))
-        }
-        g.appendChild(text);
-        
-        // let co = document.createElement("canvas");
-        // co.height = 1080;
-        // co.width = 1920;
-        // let ctx = co.getContext("2d");
-        // if (rf<fin) {
-        //     ctx.globalAlpha = linerinterpolation(rf/fin,0,1)
-        // }
-        // if (rf>=len-fout) {
-        //     ctx.globalAlpha = linerinterpolation((len-rf-1)/(fout),0,1)
-        // }
-        // ctx.font = `${s}px serif`;
-        // ctx.fillStyle = "white";
-        // ctx.fillText(t,x,y);
-        return;
-    },
-}
-var obj_rect = {
-    length: (l,x,y,w,h,c)=>{return l},
-    text: (l,x,y,w,h,c)=>{return "rect"},
-    textcolor: (l,x,y,w,h,c)=>{return "#000"},
-    color: (l,x,y,w,h,c)=>{return "#88ff55"},
-    getframe: async (af,rf,g,len,x,y,w,h,c)=>{
-        const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-        rect.setAttribute("x",x);
-        rect.setAttribute("y",y);
-        rect.setAttribute("width",w);
-        rect.setAttribute("height",h);
-        rect.setAttribute("fill",c);
-        g.appendChild(rect);
-        return;
-    },
-}
-var obj_time = {
-    length: (l,x,y,s)=>{return l},
-    text: (l,x,y,s)=>{return "time"},
-    textcolor: (l,x,y,s)=>{return "#000"},
-    color: (l,x,y,s)=>{return "#c0c505"},
-    getframe: async (af,rf,g,len,l,x,y,s)=>{
-        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-        let padding = (num,len)=>{
-            return (Array(len).join("0")+num).slice(-len);
-        }
-        let second = Math.floor(af/VideoFPS*100)/100;
-        const innerText = document.createTextNode(second)
-        text.appendChild(innerText)
-        text.setAttribute("x",x);
-        text.setAttribute("y",y);
-        text.setAttribute("font-size",s);
-        text.setAttribute("fill","white");
-        g.appendChild(text);
-    },
-}
 
 async function canvas2image(canvas){
     const image = new Image();
@@ -657,18 +576,6 @@ async function svg2image(svg){
     )
 }
 
-var timeline = [
-    [obj_rect,50,1000,30,800,300,"#ff5"],
-    [obj_rect,100,100,30,800,300,"#ff5"],
-    [obj_rect,120,100,90,500,700,"#f06"],
-    [obj_time,80,1700,30,500,100,"#f06"],
-    [obj_text,10,1700,"Neknaj Video Generator",300,600,100,50,50],
-    [obj_text,30,1700,"bem130",1400,600,70,50,50],
-]
-for (let t=0;t<100;t++) {
-    timeline.push([obj_text,t*300+10,200,"HELLO!!",50+((t+10)%100*10),100+(t%20*50),50,100,100]);
-}
-
 let timeLineTmp;
 let lastObjFrame;
 let TimelineA;
@@ -677,18 +584,17 @@ let beforeImgdata = null;
 let FrameCache = document.querySelector("#FrameCache");
 let procTime = document.querySelector("#procTime");
 let imgoutctx = imgout.getContext("2d");
-let drawFrame = async (f)=>{
+let drawFrame = async (f,nocache=false)=>{
     if (f<0) {return 0}
     if (f>=lastObjFrame) {return 0}
-    if (beforeImgdata==f) {
+    if (!nocache&&beforeImgdata==f) {
         return 0;
     }
     {
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
             if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
-                //console.log(lastObjFrame,layer,f,(lastObjFrame+1)*layer+f)
-                objects.push(TimelineA[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
+                objects.push(Project.timeline[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
             }
         }
         //console.table(f,objects)
@@ -708,8 +614,9 @@ let drawFrame = async (f)=>{
         svg.setAttribute("width",1920);
         svg.setAttribute("height",1080);
         for (let obj of objects) {
+            const res = await obj.frameFunc(f);
             const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-            await obj.func.getframe(f,f-obj.start,g,obj.len,...obj.args);
+            g.appendChild(res);
             svg.appendChild(g);
         }
         ctx.drawImage(await svg2image(svg),0,0);
@@ -722,29 +629,38 @@ let drawFrame = async (f)=>{
 }
 
 
+var Project;
+async function InitCode() {
+    Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
+    makeTLObject(Project.timeline);
+    console.log("Project",Project)
+    videoConfig = Project.scope;
+    imgout.height = videoConfig.size.height;
+    imgout.width = videoConfig.size.width;
+    resize();
+    await drawFrame(currentFrame,true);
+    SetWindowTitle();
+}
 
-var TLstat;
-var makeTLObject = ()=>{
-    TimelineObjects.innerHTML = "";
-    TimelineA = [];
+
+function makeTLObject(timeline) {
+    // last obj frame
     lastObjFrame = 0;
     let partialexportUpdate = false;
     if (export_range_end.value==lastObjFrame) {partialexportUpdate=true;}
     for (let obj of timeline) { // 各オブジェクトの長さを取得
         console.log(obj)
-        let objlen = obj[0].length(...obj.slice(2));
-        if (obj[1]+objlen>lastObjFrame) {
-            lastObjFrame = obj[1]+objlen-1;
+        let objlen = obj.range.length;
+        if (obj.range.start+objlen>lastObjFrame) {
+            lastObjFrame = obj.range.start+objlen-1;
         }
-        TimelineA.push({func:obj[0],start:obj[1],end:obj[1]+objlen-1,len:objlen,args:obj.slice(2)})
     }
     if (partialexportUpdate) {
         export_range_end.value = lastObjFrame;
     }
     export_range_start.max = lastObjFrame;
     export_range_end.max = lastObjFrame;
-    //console.log(lastObjFrame);
-    //console.table(TimelineA);
+    //
     Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
     seekbar.max = lastObjFrame;
     timeLineTmp = new Uint32Array((lastObjFrame+1)*TLTs).fill(0);
@@ -752,8 +668,8 @@ var makeTLObject = ()=>{
         let layer = 0;
         while (layer<TLTs) {
             let flag = true;
-            for (let x=0;x<obj.len;x++) {
-                if (timeLineTmp[(lastObjFrame+1)*layer+obj.start+x]!=0) {
+            for (let x=0;x<obj.range.length;x++) {
+                if (timeLineTmp[(lastObjFrame+1)*layer+obj.range.start+x]!=0) {
                     flag = false;
                     break;
                 }
@@ -766,32 +682,44 @@ var makeTLObject = ()=>{
         return false;
     }
     let setObj = (obj,layer,id)=>{ // timeLineTmpとオブジェクトを更新
-        for (let x=0;x<obj.len;x++) {
-            timeLineTmp[(lastObjFrame+1)*layer+obj.start+x]=id+1;
+        for (let x=0;x<obj.range.length;x++) {
+            timeLineTmp[(lastObjFrame+1)*layer+obj.range.start+x]=id+1;
         }
         obj.layer = layer;
         obj.id = id;
     }
-    for (let id in TimelineA) { // オブジェクトのレイヤーを決定
+    for (let id in timeline) { // オブジェクトのレイヤーを決定
         id = Number(id);
-        let obj = TimelineA[id];
+        let obj = timeline[id];
         let layer = searchLayer(obj);
         setObj(obj,layer,id);
-        console.log(layer,id)
     }
-    console.table(TimelineA)
-    for (let obj of TimelineA) { // 実際のタイムラインに表示する
+    console.table(timeline)
+    const defaulttlconf = {
+        backgroundcolor: "#fff",
+        textcolor: "#000",
+    }
+    const tag = "obj"+Date.now()+"ver";
+    for (let obj of timeline) { // 実際のタイムラインに表示する
+        const objstyle = `background-color: ${obj.tlconf.color??defaulttlconf.backgroundcolor};color: ${obj.tlconf.textcolor??defaulttlconf.textcolor};`
+        console.log(objstyle)
         let divelm = document.createElement("div");
         divelm.classList.add("object");
-        divelm.style = `left:calc( ${obj.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.len-0.1}px *var(--tl-x-scale) - 4px);background-color: ${obj.func.color(...obj.args)};color: ${obj.func.textcolor(...obj.args)}`;
-        divelm.innerText = obj.func.text(...obj.args);
+        divelm.classList.add(tag);
+        divelm.style = objstyle+`left:calc( ${obj.range.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.range.length-0.1}px *var(--tl-x-scale) - 4px)`;
+        divelm.innerText = obj.tlconf.text??obj.type;
         TimelineObjects.appendChild(divelm);
         obj.tlelm = divelm;
     }
-   // <div class="object" style=""></div>
+    console.log(timeline)
+    TimelineObjects.querySelectorAll("."+TimelineObjects.dataset.tag).forEach((x)=>{x.remove()});
+    TimelineObjects.dataset.tag = tag;
+    Timeline.style.setProperty('--tl-x-scale',0.7**TimelineScale[0]);
+    Timeline.style.setProperty('--tl-y-scale',0.8**TimelineScale[1]);
+    console.log(lastObjFrame)
 }
 
-makeTLObject()
+var TLstat;
 
 </script>
 <script> // explorer
