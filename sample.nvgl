@@ -13,6 +13,13 @@
         fps:30,
     };
 }
+
+@timeline {
+    Text(start:0,len:1,x:200,y:200,text:"スペースキーを押して再生");
+    TypingText(start:0,len:100,x:100,y:400,text:"Hello",size:150);
+    TypingText(start:20,len:100-20,x:200,y:600,text:"Neknaj Video Generator",color:"hsl(230,40%,70%)",size:150);
+}
+
 @obj Text {
     &conf {
         start      : 0    :number,
@@ -57,9 +64,4 @@
                 -> SVG::Fill(color)
                 -> SVG::Stroke(borderColor,border);
     }
-}
-@timeline {
-    Text(start:0,len:1,x:200,y:200,text:"スペースキーを押して再生");
-    TypingText(start:0,len:100,x:100,y:400,text:"Hello",size:150);
-    TypingText(start:20,len:100-20,x:200,y:600,text:"Neknaj Video Generator",color:"hsl(230,40%,70%)",size:150);
 }
