@@ -1,6 +1,6 @@
 # sample
 @imports {
-    SVG
+    SVG,Math,String
 }
 @includes {
 }
@@ -15,24 +15,51 @@
 }
 @obj Text {
     &conf {
-        start:0:number,
-        len:0:number,
-        text:"":text,
-        x: 10:number,
-        y:100:number,
-        size:100:number,
-        color:#fff:color,
+        start      : 0    :number,
+        len        : 0    :number,
+        text       : ""   :text,
+        x          : 10   :number,
+        y          : 100  :number,
+        size       : 100  :number,
+        color      : #fff :color,
+        borderColor: #888 :color,
+        border     : 0    :number,
     }
-    &init {!return {};}
-    &range {!return {start:start,length:len};}
-    &tlconf {
-        !return {text:"Text: " + text,color:#ff9595,textcolor:#000};
-    }
+    &init   {!return {};}
+    &range  {!return {start:start,length:len};}
+    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
     &frame(f) {
-        !return SVG::Text(text,x,y,size,color);
+        !return text
+                -> SVG::Text(x,y,size)
+                -> SVG::Fill(color)
+                -> SVG::Stroke(borderColor,border);
+    }
+}
+@obj TypingText {
+    &conf {
+        start      : 0    :number,
+        len        : 0    :number,
+        text       : ""   :text,
+        x          : 10   :number,
+        y          : 100  :number,
+        size       : 100  :number,
+        color      : #fff :color,
+        borderColor: #888 :color,
+        border     : 0    :number,
+        speed      : 10   :number,
+    }
+    &init   {!return {};}
+    &range  {!return {start:start,length:len};}
+    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
+    &frame(f) {
+        !return text -> String::slice(0,f*speed/fps)
+                -> SVG::Text(x,y,size)
+                -> SVG::Fill(color)
+                -> SVG::Stroke(borderColor,border);
     }
 }
 @timeline {
-    Text(start:0,text:"hello world",len:50,y:250);
-    Text(start:10,text:"hello world"+"!",len:50,color:"#9f9");
+    Text(start:0,len:1,x:200,y:200,text:"スペースキーを押して再生");
+    TypingText(start:0,len:100,x:100,y:400,text:"Hello",size:150);
+    TypingText(start:20,len:100-20,x:200,y:600,text:"Neknaj Video Generator",color:"hsl(230,40%,70%)",size:150);
 }

@@ -37,7 +37,7 @@ const val = {
     },
     Stroke: (_,args)=>{ // elm,color,width
         const elm = args[0];
-        elm.setAttribute("fill",args[1]);
+        elm.setAttribute("stroke",args[1]);
         elm.setAttribute("stroke-width",args[2]);
         return elm;
     },

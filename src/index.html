@@ -23,7 +23,7 @@
                 <button type="button" id="savefileas">Save As</button>
                 <button type="button" id="sidearea">Side Area</button>
                 <div>
-                    <input type="checkbox" switch id="autosave"><label for="autosave">Auto Save</label>
+                    <input type="checkbox" switch id="autosave" checked><label for="autosave">Auto Save</label>
                 </div>
             </div>
             <div>
@@ -167,13 +167,9 @@ function SetWindowTitle() {
 }
 
 function updateEditorData(data) {
-    editor.setValue(data);
+    input.setValue(data);
+    InitCode();
     SetWindowTitle();
-    let sel = editor.getSelection();
-    let range = sel.getRange();
-    range.setStart(0,0);
-    range.setEnd(0,0);
-    sel.setSelectionRange(range);
 }
 
 function data2string(data) {
@@ -194,7 +190,7 @@ document.getElementById("openfile").onclick = (e)=>{
 }
 document.getElementById("savefileas").onclick = (e)=>{
     if (exporting) {e.preventDefault();return false;}
-    window.electron.saveAs(editor.getValue());
+    window.electron.saveAs(input.getValue());
 }
 let autosave = document.getElementById("autosave");
 
@@ -291,7 +287,7 @@ async function initEditor() {
             // requestAnimationFrame(update); // for debug
             ScopeMarker(0,0);
             if (autosave.checked&&ProjectInfo.path!=null) {
-                window.electron.saveFile(ProjectInfo.path,editor.getValue());
+                window.electron.saveFile(ProjectInfo.path,input.getValue());
             }
         })
         input.setValue(fRead("../sample.nvgl"));
@@ -476,7 +472,7 @@ var export_range_start = document.querySelector('#export_range_start');
 var export_range_end = document.querySelector('#export_range_end');
 function ExportFrame() {
     exporting = true;
-    editor.setReadOnly(true);
+    input.updateOptions({readOnly:true});
     playInterval = false;
     checkExportrange();
     let start = Math.floor(Number(export_range_start.value));
@@ -511,7 +507,7 @@ async function export_frame(i=0,s,e) {
         setTimeout(export_frame,0,i+1,s,e);
     }
     else {
-        editor.setReadOnly(false);
+    input.updateOptions({readOnly:false});
         exporting = false;
         let fname = "";
         if (s!=0||i!=lastObjFrame) {
