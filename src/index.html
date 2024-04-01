@@ -247,6 +247,7 @@ window.onload = async ()=>{
     await initEditor();
     Previewzero();
     window.electron.onload();
+    playInterval = true;
 };
 
 var nvgl,ScopeMarker,input;
@@ -407,7 +408,6 @@ let seekbar = document.querySelector("#seekbar");
 let currentFrameShow = document.querySelector("#currentFrame");
 let TimeLineTimeBar = document.querySelector("#tl_timebar");
 let playbutton = document.querySelector("#playbutton");
-let VideoFPS = 30;
 seekbar.addEventListener("input",(e)=>{
     if (exporting) {e.preventDefault();return false;}
     currentFrame = Number(seekbar.value);
@@ -537,7 +537,7 @@ async function export_frame(i=0,s,e) {
         }
         console.log(fname);
         window.electron.cleanExportFrame(s,i);
-        window.electron.composeVideo(s,i,VideoFPS,fname);
+        window.electron.composeVideo(s,i,Project.scope.fps,fname);
         stopExporting = false;
     }
 }
@@ -548,8 +548,8 @@ async function playPreview() {
     const fstartT = performance.now();
     if (exporting) {setTimeout(playPreview,2000);return false;}
     updatePlayCtrl();
-    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*30):currentFrame;
-    if (currentFrame>=seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
+    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*Project.scope.fps):currentFrame;
+    if (currentFrame>=Number(seekbar.max)) {currentFrame=Number(seekbar.max);playInterval=false;}
     const drawInfo = await drawFrame(currentFrame);
     FrameCache.className = "s"+drawInfo;
     const fendT = performance.now();
@@ -677,7 +677,6 @@ async function InitCode() {
     resize();
     await drawFrame(currentFrame,true);
     SetWindowTitle();
-    playInterval = true;
 }
 
 

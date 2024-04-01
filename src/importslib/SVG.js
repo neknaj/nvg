@@ -6,7 +6,7 @@ function init() {
 const val = {
     Text: (_,args)=>{ // text,x,y,size,h_anchor,v_anchor
         const elm = document.createElementNS('http://www.w3.org/2000/svg','text');
-        elm.appendChild(document.createTextNode(args[0]??""));
+        elm.appendChild(document.createTextNode((args[0]??"").toString()));
         elm.setAttribute("x",args[1]??0);
         elm.setAttribute("y",args[2]??0);
         elm.setAttribute("font-size",args[3]??100);
@@ -16,9 +16,9 @@ const val = {
     },
     LFText: (_,args)=>{ // text,x,y,size,h_anchor,v_anchor,line_space
         const gelm = document.createElementNS('http://www.w3.org/2000/svg','g');
-        for (let t in args[0].split("\n")) {
+        for (let t in (args[0]??"").toString().split("\n")) {
             const elm = document.createElementNS('http://www.w3.org/2000/svg','text');
-            elm.appendChild(document.createTextNode(args[0].split("\n")[t]));
+            elm.appendChild(document.createTextNode((args[0]??"").toString().split("\n")[t]));
             elm.setAttribute("x",args[1]??0);
             elm.setAttribute("y",(args[2]??0)+t*((args[3]??100)+(args[6]??((args[3]??100)*0.5))));
             elm.setAttribute("font-size",args[3]??100);
