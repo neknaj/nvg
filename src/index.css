@@ -236,14 +236,24 @@ visibility: hidden !important;
 
 /*timeline*/
 #timelinearea {
+    --tl-y-scale: 1;
+    --tl-x-scale: 1;
     overflow: auto;
     height: 100%;
     z-index: -10;
     background-color: rgba(102, 115, 175, 0.204);
+    & #tl_timebar {
+        width: 1px;
+        height: var(--tl-timebar-height);
+        background-color: white;
+        box-shadow: 0px 0px 3px 1px black;
+        border: 1px solid black;
+        position: absolute;
+        z-index: 15;
+        cursor: ew-resize;
+    }
 }
 #timeline {
-    --tl-y-scale: 1;
-    --tl-x-scale: 1;
     padding: 5px;
     transform: scale(1);
     z-index: -10;
@@ -252,20 +262,12 @@ visibility: hidden !important;
         margin: 5px;
         padding: 2px;
         position: absolute;
-        font-size: 20px;
+        font-size: calc(5px*var(--tl-y-scale) + 10px);
         overflow-x: auto;
         white-space: nowrap;
         &:hover {
             filter: brightness(0.8);
         }
-    }
-    & #tl_timebar {
-        background-color: rgb(255, 255, 255);
-        width: 3px;
-        height: var(--tl-timebar-height);
-        position: absolute;
-        z-index: 15;
-        cursor: ew-resize;
     }
 }
 

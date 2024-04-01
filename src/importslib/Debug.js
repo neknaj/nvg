@@ -3,7 +3,7 @@ function init() {
 }
 
 const val = {
-    print: (_,args)=>{return console.log(...args)},
+    print: (_,args)=>{console.log(...args);return args[0];},
 }
 
 

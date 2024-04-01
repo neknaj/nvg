@@ -3,9 +3,7 @@ function init() {
 }
 
 const val = {
-    Bitmap: {
-    }
 }
 
 
-//export {init as init,val as val};
+export {init as init,val as val};

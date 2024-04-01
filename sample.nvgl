@@ -28,7 +28,7 @@
     }
     &init   {!return {};}
     &range  {!return {start:start,length:len};}
-    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
+    &tlconf {!return {text:"Text: " + text,color:color,textcolor:#000};}
     &frame(f) {
         !return text
                 -> SVG::LFText(x,y,size)
@@ -55,7 +55,7 @@
     }
     &init   {!return {};}
     &range  {!return {start:start,length:len};}
-    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
+    &tlconf {!return {text:"Text: " + text,color:color,textcolor:#000};}
     &frame(f) {
         !return text -> String::slice(0,f*speed/fps)
                 -> SVG::LFText(x,y,size)
@@ -83,7 +83,7 @@
     }
     &init   {!return {};}
     &range  {!return {start:start,length:len};}
-    &tlconf {!return {text:"Text: " + text,color:#fff,textcolor:#000};}
+    &tlconf {!return {text:"Text: " + text,color:color,textcolor:#000};}
     &frame(f) {
         thresh_time <: text::length*fps/speed;
         # Debug::print(out,len,f,len-f-1,Math::min(len-f-1,out)/out);
@@ -106,7 +106,7 @@
     }
 }
 @timeline {
-    Text(start:0,len:1,x:200,y:200,text:"Spaceキーを押して再生",font:"Yu Mincho");
+    Text(start:470,len:1,x:200,y:200,text:"Spaceキーを押してもう一度再生",font:"Yu Mincho");
     TypingText(start:0,len:370-0,x:150,y:350,text:"Hello",color:"hsl(130,100%,90%)",size:150,font:"Noto Serif Thin");
     borderedTypingText(start:20,len:470-20,x:130,y:600,text:"Neknaj Video Generator",borderColor:#fff,color:"hsl(230,100%,90%)",size:150,font:"Noto Serif Thin");
     TypingText(start:150,len:370-150,x:180,y:800,text:"a Video Editing Software\n that allows you to create videos by Writing Programs",borderColor:#fff,color:"hsl(10,100%,90%)",size:50,font:"Courier",speed:15);

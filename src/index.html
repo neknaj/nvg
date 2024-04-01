@@ -35,7 +35,7 @@
                 <div class="resizer_Vcontainer" style="height: 100%;">
                     <div class="resizer_content" style="flex-basis: 80%;">
                         <div class="resizer_Hcontainer" style="height: 100%;">
-                            <div class="resizer_content" style="flex-basis: 70%;" id="imgOutArea">
+                            <div class="resizer_content" style="flex-basis: 60%;" id="imgOutArea">
                                 <div class="imgOutWindow">
                                     <div id="timebar_padding" class="imgOutArea">
                                         <div id="imgOutPadding"></div>
@@ -51,7 +51,7 @@
                                 </div>
                             </div>
                             <div class="resizer_splitter"></div>
-                            <div class="resizer_content" style="flex-basis: 30%;">
+                            <div class="resizer_content" style="flex-basis: 40%;">
                                 <button onclick="InitCode()" style="height: 20px;">Update</button>
                                 <div id="editor" style="height: calc(100% - 20px)"></div>
                             </div>
@@ -61,7 +61,7 @@
                     <div class="resizer_content" style="flex-basis: 20%;">
                         <div id="timelinearea">
                             <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
-                                <div id="tl_timebar" style="left:calc( 10px *var(--tl-x-scale));"></div>
+                                <div id="tl_timebar" style="left:calc( var(--current-frame)*var(--tl-x-scale)*1px);"></div>
                                 <div id="tl_objects">
                                 </div>
                             </div>
@@ -152,17 +152,18 @@ var editor;
 var ProjectInfo = {
     path: null,
     name: null,
+    dir: null,
 }
 
 function SetWindowTitle() {
     document.title = [
         "Neknaj Video Generator",
         data2string(ProjectInfo.name?.name),
-        data2string(ProjectInfo.path),
+        data2string(ProjectInfo.dir),
     ].join(" ")
     document.getElementById("title").innerText = [
         data2string(ProjectInfo.name?.name),
-        data2string(ProjectInfo.path),
+        data2string(ProjectInfo.dir),
     ].join("　");
 }
 
@@ -233,6 +234,11 @@ function resize() {
             imgout.style.left = "10px";
             imgout.style.top = "10px";
         }
+    }
+    {
+        TimelineArea.style.setProperty('--tl-timebar-height',
+            Math.max(TimelineArea.getBoundingClientRect().height-2)+"px"
+        );
     }
 };
 window.onresize = resize;
@@ -310,7 +316,7 @@ function fRead(filename) {
 let TimelineArea = document.getElementById("timelinearea");
 let Timeline = document.getElementById("timeline");
 let TimelineObjects = document.getElementById("tl_objects");
-let TimelineScale = [0,0];
+let TimelineScale = [0,0,0.7,0.8];
 TimelineArea.addEventListener("wheel",(e)=>{
     if (e.ctrlKey&&!e.shiftKey) { // x軸の拡大縮小
         e.preventDefault();
@@ -319,8 +325,8 @@ TimelineArea.addEventListener("wheel",(e)=>{
         if (TimelineScale[0]>20) {TimelineScale[0]=20}
         else if (TimelineScale[0]<-20) {TimelineScale[0]=-20}
        // console.log(TimelineScale);
-        Timeline.style.setProperty('--tl-x-scale',0.7**TimelineScale[0]);
-        Timeline.style.setProperty('--tl-y-scale',0.8**TimelineScale[1]);
+        TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+        TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
     }
     else if (e.ctrlKey&&e.shiftKey) { // y軸の拡大縮小
         e.preventDefault();
@@ -329,12 +335,13 @@ TimelineArea.addEventListener("wheel",(e)=>{
         if (TimelineScale[1]>20) {TimelineScale[1]=20}
         else if (TimelineScale[1]<-10) {TimelineScale[1]=-10}
       //  console.log(TimelineScale);
-        Timeline.style.setProperty('--tl-x-scale',0.7**TimelineScale[0]);
-        Timeline.style.setProperty('--tl-y-scale',0.8**TimelineScale[1]);
+        TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+        TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
     }
     else {
     }
 })
+TimelineArea.onscroll = updatePlayCtrl;
 imgOutArea.addEventListener("wheel",(e)=>{
     if (e.ctrlKey) {
         e.preventDefault();
@@ -377,10 +384,14 @@ document.onkeydown = (e)=>{
     }
     if (!e.shiftKey&&e.keyCode==39) {
         currentFrame++;
+        startTime = Date.now();
+        startFrame = currentFrame;
         updatePlayCtrl();
     }
     if (!e.shiftKey&&e.keyCode==37) {
         currentFrame--;
+        startTime = Date.now();
+        startFrame = currentFrame;
         updatePlayCtrl();
     }
     if (e.keyCode == 82 && e.ctrlKey && !e.shiftKey) {
@@ -400,21 +411,27 @@ let VideoFPS = 30;
 seekbar.addEventListener("input",(e)=>{
     if (exporting) {e.preventDefault();return false;}
     currentFrame = Number(seekbar.value);
+        startTime = Date.now();
+        startFrame = currentFrame;
     updatePlayCtrl();
 })
 seekbar.addEventListener("change",(e)=>{
     if (exporting) {e.preventDefault();return false;}
     currentFrame = Number(seekbar.value);
+        startTime = Date.now();
+        startFrame = currentFrame;
     updatePlayCtrl();
 })
 TimeLineTimeBar.addEventListener("mousedown",(e)=>{
     if (exporting) {e.preventDefault();return false;}
     let resize = (e)=>{
         let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
-        let x = ex/(0.8**TimelineScale[0]);
+        let x = ex/(TimelineScale[2]**TimelineScale[0]);
         if (x<0) {x=0};
         if (x>=Number(seekbar.max)) {x=Number(seekbar.max)};
         currentFrame = Math.round(x);
+        startTime = Date.now();
+        startFrame = currentFrame;
         updatePlayCtrl();
     }
     document.addEventListener("mousemove",resize,false);
@@ -423,15 +440,18 @@ TimeLineTimeBar.addEventListener("mousedown",(e)=>{
 
 function Previewzero() {
     currentFrame = 0;
+        startTime = Date.now();
+        startFrame = currentFrame;
     updatePlayCtrl();
 }
 function updatePlayCtrl(f=currentFrame) {
     if (f<0) {f=0};
     if (f>=Number(seekbar.max)) {f=Number(seekbar.max)};
     f = Math.round(Number(f));
-    TimeLineTimeBar.style = `left:calc( ${f}px *var(--tl-x-scale) + 5px);`;
     seekbar.value = f;
     currentFrameShow.innerText = f;
+    TimelineArea.style.setProperty('--tl-scroll-x',TimelineArea.scrollLeft);
+    TimelineArea.style.setProperty('--current-frame',f);
 }
 
 var playInterval = false;
@@ -442,6 +462,8 @@ playbutton.addEventListener("click",()=>{
 })
 function togglePlayPreview() {
     if (currentFrame>=Number(seekbar.max)) {currentFrame=0;}
+        startTime = Date.now();
+        startFrame = currentFrame;
     if (playInterval==false) {
         playInterval = true;
     }
@@ -504,7 +526,7 @@ async function export_frame(i=0,s,e) {
         }
     });
     if (i<e&&!stopExporting) {
-        setTimeout(export_frame,0,i+1,s,e);
+        requestAnimationFrame(()=>{export_frame(i+1,s,e)});
     }
     else {
     input.updateOptions({readOnly:false});
@@ -520,26 +542,25 @@ async function export_frame(i=0,s,e) {
     }
 }
 
-var startTime = performance.now();
+var startTime = Date.now();
+var startFrame = 0;
 async function playPreview() {
+    const fstartT = performance.now();
     if (exporting) {setTimeout(playPreview,2000);return false;}
     updatePlayCtrl();
-    let drawInfo = await drawFrame(currentFrame);
+    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*30):currentFrame;
+    if (currentFrame>=seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
+    const drawInfo = await drawFrame(currentFrame);
     FrameCache.className = "s"+drawInfo;
-    const endTime = performance.now()+5;
+    const fendT = performance.now();
     if (playInterval) {
-        procTime.innerText = Math.floor(endTime-startTime);
-        let nextFrame = Math.max((1000/VideoFPS)-endTime+startTime,0);
-        //console.log((endTime-startTime),nextFrame)
-        if (currentFrame>=seekbar.max) {currentFrame=seekbar.max;playInterval=false;}
-        setTimeout(playPreview,nextFrame);
-        startTime = performance.now();
+        procTime.innerText = Math.floor((fendT-fstartT));
+        requestAnimationFrame(playPreview);
     }
     else {
+        startTime = Date.now();
+        startFrame = currentFrame;
         setTimeout(playPreview,100);
-    }
-    if (playInterval) {
-        currentFrame++;
     }
 }
 setTimeout(playPreview,1000)
@@ -567,7 +588,19 @@ async function svg2image(svg){
                 resolve(image);
             }
             image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(svg))));
-            //console.log(new XMLSerializer().serializeToString(svg))
+        }
+    )
+}
+async function svg2image(svg){
+    const image = new Image();
+    return new Promise(
+        (resolve) => {
+            image.onload = () => {
+                URL.revokeObjectURL(image.src);
+                resolve(image);
+            }
+            abcde = image;
+            image.src = URL.createObjectURL(new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
         }
     )
 }
@@ -610,7 +643,6 @@ let drawFrame = async (f,nocache=false)=>{
         svg.setAttribute("viewBox","0 0 1920 1080")
         svg.setAttribute("width",1920);
         svg.setAttribute("height",1080);
-              //  console.log(f,objects)
         for (let obj of objects) {
             try {
                 const res = await obj.frameFunc(f-obj.range.start);
@@ -620,7 +652,10 @@ let drawFrame = async (f,nocache=false)=>{
             }
             catch (e) {console.warn(e);}
         }
+        start=performance.now()
         ctx.drawImage(await svg2image(svg),0,0);
+        end=performance.now()
+        //console.log(end-start,svg)
         imgoutctx.putImageData(ctx.getImageData(0,0,1920,1080),0,0)
         beforeImgdata = f;
 
@@ -631,6 +666,7 @@ let drawFrame = async (f,nocache=false)=>{
 
 
 var Project;
+var NVGStrage,NVGPromiselist;
 async function InitCode() {
     Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
     makeTLObject(Project.timeline);
@@ -641,6 +677,7 @@ async function InitCode() {
     resize();
     await drawFrame(currentFrame,true);
     SetWindowTitle();
+    playInterval = true;
 }
 
 
@@ -715,8 +752,8 @@ function makeTLObject(timeline) {
     console.log(timeline)
     TimelineObjects.querySelectorAll("."+TimelineObjects.dataset.tag).forEach((x)=>{x.remove()});
     TimelineObjects.dataset.tag = tag;
-    Timeline.style.setProperty('--tl-x-scale',0.7**TimelineScale[0]);
-    Timeline.style.setProperty('--tl-y-scale',0.8**TimelineScale[1]);
+    TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+    TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
     console.log(lastObjFrame)
 }
 

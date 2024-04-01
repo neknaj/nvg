@@ -2,6 +2,7 @@ const evalBW = (program)=>{window.electron.evalBW(program,null)}
 window.electron.on("projectFilePathChanged", async (path,name)=>{
     ProjectInfo.path = path;
     ProjectInfo.name = name;
+    ProjectInfo.dir = new URL("./"+ProjectInfo.name.name,ProjectInfo.path).href;
     console.log(path,name,"Selected!",new Date());
     let data = await window.electron.readFile(ProjectInfo.path);
     updateEditorData(data);
