@@ -38,22 +38,22 @@ const val = {
         elm.appendChild(document.createTextNode(args[0]));
         return elm;
     },
-    Image: (_,args)=>{ // href,x,y,width,height
+    Image: async(_,args)=>{ // image,x,y,scale
         const elm = document.createElementNS('http://www.w3.org/2000/svg','image');
-        elm.setAttribute("href",getImageFrame(args[0]));
+        elm.setAttribute("href",await getImageFrame(args[0]));
         elm.setAttribute("x",args[1]??0);
         elm.setAttribute("y",args[2]??0);
-        elm.setAttribute("width",args[3]??0);
-        elm.setAttribute("height",args[4]??0);
+        elm.setAttribute("width",args[0].width*(args[3].x??1));
+        elm.setAttribute("height",args[0].height*(args[3].y??1));
         return elm;
     },
-    Video: (_,args)=>{ // href,x,y,width,height,frame
+    Video: async(_,args)=>{ // video,x,y,scale,frame
         const elm = document.createElementNS('http://www.w3.org/2000/svg','image');
-        elm.setAttribute("href",getVideoFrame(args[0],args[5]));
+        elm.setAttribute("href",await getVideoFrame(args[0],args[4]));
         elm.setAttribute("x",args[1]??0);
         elm.setAttribute("y",args[2]??0);
-        elm.setAttribute("width",args[3]??0);
-        elm.setAttribute("height",args[4]??0);
+        elm.setAttribute("width",args[0].videoWidth*(args[3].x??1));
+        elm.setAttribute("height",args[0].videoHeight*(args[3].y??1));
         return elm;
     },
     Rect: (_,args)=>{ // x,y,width,height
@@ -102,24 +102,23 @@ const val = {
     },
 }
 
-const canvas = document.createElement("canvas");
-const canvasctx = canvas.getContext("2d");
-function getImageFrame(name) {
-    const image = NVGStrage[name];
-    if (image==null) {console.warn("load the image in init")}
+async function getImageFrame(image) {
+    const canvas = document.createElement("canvas");
+    const canvasctx = canvas.getContext("2d");
     canvas.width = image.width;
     canvas.height = image.height;
     canvasctx.drawImage(image,0,0);
     return canvas.toDataURL("image/png");
 }
-function getVideoFrame(name,frame) {
-    const video = NVGStrage[name];
-    if (video==null) {console.warn("load the video in init")}
+function getVideoFrame(video,frame) {
+    const canvas = document.createElement("canvas");
+    const canvasctx = canvas.getContext("2d");
     video.currentTime = frame;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvasctx.drawImage(video,0,0);
     return canvas.toDataURL("image/png");
 }
+
 
 export {init as init,val as val};

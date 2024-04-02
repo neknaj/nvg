@@ -205,7 +205,6 @@ let imgOutArea = document.getElementById("imgOutArea");
 var canvasScale = 0;
 function resize() {
     {
-        console.log("resize")
         let scale = 1.05**canvasScale;
         const dw = videoConfig.size.width;
         const dh = videoConfig.size.height;
@@ -215,20 +214,18 @@ function resize() {
         {
             let ws = (ww-30)/dw;
             let hs = (wh-30-30)/dh;
-            console.log(ws,hs)
+            //console.log(ws,hs)
             scale *= Math.min(ws,hs);
         }
         imgOutPadding.style.width = `${dw*scale+20}px`;
         imgOutPadding.style.height = `${dh*scale+20}px`;
         if (dw*scale+20<=ww&&dh*scale+20<=wh) {
-            console.log("a")
             imgout.style.transform = "translate(-50%,-50%) scale("+scale.toString()+","+scale.toString()+")";
             imgout.style.transformOrigin = "center center";
             imgout.style.left = "50%";
             imgout.style.top = "50%";
         }
         else {
-            console.log("b")
             imgout.style.transform = "scale("+scale.toString()+","+scale.toString()+")";
             imgout.style.transformOrigin = "top left";
             imgout.style.left = "10px";
@@ -342,7 +339,7 @@ TimelineArea.addEventListener("wheel",(e)=>{
     else {
     }
 })
-TimelineArea.onscroll = updatePlayCtrl;
+TimelineArea.onscroll = ()=>{updatePlayCtrl()};
 imgOutArea.addEventListener("wheel",(e)=>{
     if (e.ctrlKey) {
         e.preventDefault();
@@ -545,16 +542,13 @@ async function export_frame(i=0,s,e) {
 var startTime = Date.now();
 var startFrame = 0;
 async function playPreview() {
-    const fstartT = performance.now();
     if (exporting) {setTimeout(playPreview,2000);return false;}
     updatePlayCtrl();
     currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*Project.scope.fps):currentFrame;
     if (currentFrame>=Number(seekbar.max)) {currentFrame=Number(seekbar.max);playInterval=false;}
     const drawInfo = await drawFrame(currentFrame);
     FrameCache.className = "s"+drawInfo;
-    const fendT = performance.now();
     if (playInterval) {
-        procTime.innerText = Math.floor((fendT-fstartT));
         requestAnimationFrame(playPreview);
     }
     else {
@@ -606,20 +600,21 @@ async function svg2image(svg){
 }
 
 let timeLineTmp;
-let lastObjFrame;
+let lastObjFrame = 0;
 let TimelineA;
 let TLTs = 20;
 let beforeImgdata = null;
 let FrameCache = document.querySelector("#FrameCache");
 let procTime = document.querySelector("#procTime");
 let imgoutctx = imgout.getContext("2d");
-let drawFrame = async (f,nocache=false)=>{
+let drawFrame = async (f)=>{
     if (f<0) {return 0}
     if (f>lastObjFrame) {return 0}
-    if (!nocache&&beforeImgdata==f) {
-        return 0;
+    if (beforeImgdata==f) {
+        //return 0;
     }
     {
+        const fstartT = performance.now();
         let objects = [];
         for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
             //console.log((lastObjFrame+1)*layer+f,f,timeLineTmp[(lastObjFrame+1)*layer+f])
@@ -630,35 +625,45 @@ let drawFrame = async (f,nocache=false)=>{
         //console.table(f,objects)
         // 描画する
         let bufco = document.createElement("canvas");
-        bufco.height = 1080;
-        bufco.width = 1920;
+        bufco.height = Project.scope.size.height;
+        bufco.width = Project.scope.size.width;
         bufco.style = imgout.style;
         bufco.id = imgout.id;
 
         let ctx = bufco.getContext("2d");
         ctx.fillStyle = "black";
-        ctx.rect(0,0,1920,1080);
+        ctx.rect(0,0,Project.scope.size.width,Project.scope.size.height);
         ctx.fill();
-        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-        svg.setAttribute("viewBox","0 0 1920 1080")
-        svg.setAttribute("width",1920);
-        svg.setAttribute("height",1080);
         for (let obj of objects) {
             try {
                 const res = await obj.frameFunc(f-obj.range.start);
-                const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-                g.appendChild(res);
-                svg.appendChild(g);
+                start=performance.now()
+                if (res instanceof SVGElement) {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+                    svg.setAttribute("viewBox",`0 0 ${Project.scope.size.width} ${Project.scope.size.height}`)
+                    svg.setAttribute("width",Project.scope.size.width);
+                    svg.setAttribute("height",Project.scope.size.height);
+                    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                    g.appendChild(res);
+                    svg.appendChild(g);
+                    ctx.drawImage(await svg2image(svg),0,0);
+                }
+                else if (res instanceof HTMLCanvasElement) {
+                    ctx.drawImage(res,0,0);
+                }
+                else {
+                    console.warn("unknown result",res);
+                }
+                end=performance.now()
+                //console.log(end-start)
             }
             catch (e) {console.warn(e);}
         }
-        start=performance.now()
-        ctx.drawImage(await svg2image(svg),0,0);
-        end=performance.now()
-        //console.log(end-start,svg)
-        imgoutctx.putImageData(ctx.getImageData(0,0,1920,1080),0,0)
+        imgoutctx.putImageData(ctx.getImageData(0,0,Project.scope.size.width,Project.scope.size.height),0,0)
         beforeImgdata = f;
 
+        const fendT = performance.now();
+        procTime.innerText = Math.floor((fendT-fstartT)*10)/10;
         return 4;
         // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
     }
@@ -666,7 +671,6 @@ let drawFrame = async (f,nocache=false)=>{
 
 
 var Project;
-var NVGStrage,NVGPromiselist;
 async function InitCode() {
     Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
     makeTLObject(Project.timeline);
@@ -675,16 +679,16 @@ async function InitCode() {
     imgout.height = videoConfig.size.height;
     imgout.width = videoConfig.size.width;
     resize();
-    await drawFrame(currentFrame,true);
+    beforeImgdata = null;
     SetWindowTitle();
 }
 
 
 function makeTLObject(timeline) {
     // last obj frame
-    lastObjFrame = 0;
     let partialexportUpdate = false;
     if (export_range_end.value==lastObjFrame) {partialexportUpdate=true;}
+    lastObjFrame = 0;
     for (let obj of timeline) { // 各オブジェクトの長さを取得
         console.log(obj)
         let objlen = obj.range.length;
