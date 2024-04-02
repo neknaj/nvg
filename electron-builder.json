@@ -14,7 +14,9 @@
         "node_modules/monaco-editor",
         "node_modules/neknaj-jsonviewer",
         "node_modules/nvgl/evalNVGL.js",
-        "node_modules/nvgl/pkg"
+        "node_modules/nvgl/pkg",
+        
+        "node_modules/electron-window-state"
     ],
     "win": {
         "target": "nsis"

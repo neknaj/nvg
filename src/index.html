@@ -30,7 +30,7 @@
                 <span id="title">　</span>
             </div>
         </div>
-        <div id="mainarea" class="resizer_Vcontainer" style="height: calc(100% - 26px);">
+        <div id="mainarea" class="resizer_Hcontainer" style="height: calc(100% - 26px);">
             <div class="resizer_content" style="flex-basis: 100%;">
                 <div class="resizer_Vcontainer" style="height: 100%;">
                     <div class="resizer_content" style="flex-basis: 80%;">
@@ -682,7 +682,7 @@ var audiobuffer;
 var playsound_before_startTime = null;
 async function InitCode() {
     Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
-    console.log("Project",Project);
+    debug.print(Project);
     makeTLObject(Project.timeline);
     makeAudio(Project.timeline);
     videoConfig = Project.scope;

@@ -1,73 +1,51 @@
-// {
-//     let consoleinfo = console.info;
-//     let log_info = (obj,elm,defaultopen=false)=>{
-//         let pelm = document.createElement("p");
-//         pelm.classList.add("jsonviewer");
-//         pelm.classList.add("info");
-//         pelm.appendChild(json_child(obj,defaultopen));
-//         elm.appendChild(pelm);
-//     }
-//     console.info = (...x)=>{
-//         consoleinfo(...x);
-//         for (let i of x) {
-//             log_info(i,document.getElementById("logarea"),false);
-//         }
-//     }
-//     let consoleerror = console.error;
-//     let log_error = (obj,elm,defaultopen=false)=>{
-//         let pelm = document.createElement("p");
-//         pelm.classList.add("jsonviewer");
-//         pelm.classList.add("error");
-//         pelm.appendChild(json_child(obj,defaultopen));
-//         elm.appendChild(pelm);
-//     }
-//     console.error = (...x)=>{
-//         consoleerror(...x);
-//         for (let i of x) {
-//             log_error(i,document.getElementById("logarea"),false);
-//         }
-//     }
-//     let consolewarn = console.warn;
-//     let log_warn = (obj,elm,defaultopen=false)=>{
-//         let pelm = document.createElement("p");
-//         pelm.classList.add("jsonviewer");
-//         pelm.classList.add("warn");
-//         pelm.appendChild(json_child(obj,defaultopen));
-//         elm.appendChild(pelm);
-//     }
-//     console.warn = (...x)=>{
-//         consolewarn(...x);
-//         for (let i of x) {
-//             log_warn(i,document.getElementById("logarea"),false);
-//         }
-//     }
-//     let consolelog = console.log;
-//     let log_log = (obj,elm,defaultopen=false)=>{
-//         let pelm = document.createElement("p");
-//         pelm.classList.add("jsonviewer");
-//         pelm.classList.add("log");
-//         pelm.appendChild(json_child(obj,defaultopen));
-//         elm.appendChild(pelm);
-//     }
-//     console.log = (...x)=>{
-//         consolelog(...x);
-//         for (let i of x) {
-//             log_log(i,document.getElementById("logarea"),false);
-//         }
-//     }
-//     let log_link = (link,elm,defaultopen=false)=>{
-//         let pelm = document.createElement("p");
-//         pelm.classList.add("jsonviewer");
-//         pelm.classList.add("link");
-//         pelm.appendChild(json_child(link,defaultopen));
-//         let aelm = document.createElement("a");
-//         aelm.appendChild(pelm);
-//         aelm.href = link;
-//         aelm.target = "_blank";
-//         elm.appendChild(aelm);
-//     }
-//     console.link = (link)=>{
-//         consolelog(link);
-//         log_link(link,document.getElementById("logarea"),false);
-//     }
-// }
+{
+    let log = (obj,elm,type="log",defaultopen=false)=>{
+        let pelm = document.createElement("p");
+        pelm.classList.add("jsonviewer");
+        pelm.classList.add(type);
+        pelm.appendChild(json_child(obj,defaultopen));
+        elm.appendChild(pelm);
+    }
+    debug = {};
+    debug.print = (...x)=>{
+        if (x.length=1) {
+            console.log(x[0]);
+            log(JSON.stringify(x[0],null,2),document.getElementById("logarea"),"log",false);
+        }
+        else if (x.length>1) {
+            console.log(...x);
+            log(JSON.stringify(x,null,2),document.getElementById("logarea"),"log",false);
+        }
+    }
+    debug.info = (...x)=>{
+        if (x.length=1) {
+            console.info(x[0]);
+            log(JSON.stringify(x[0],null,2),document.getElementById("logarea"),"info",false);
+        }
+        else if (x.length>1) {
+            console.info(...x);
+            log(JSON.stringify(x,null,2),document.getElementById("logarea"),"info",false);
+        }
+    }
+    debug.warn = (...x)=>{
+        console.log(x)
+        if (x.length=1) {
+            console.warn(x[0]);
+            log(JSON.stringify(x[0],null,2),document.getElementById("logarea"),"warn",true);
+        }
+        else if (x.length>1) {
+            console.warn(...x);
+            log(JSON.stringify(x,null,2),document.getElementById("logarea"),"warn",true);
+        }
+    }
+    debug.error = (...x)=>{
+        if (x.length=1) {
+            console.error(x[0]);
+            log(JSON.stringify(x[0],null,2),document.getElementById("logarea"),"error",true);
+        }
+        else if (x.length>1) {
+            console.error(...x);
+            log(JSON.stringify(x,null,2),document.getElementById("logarea"),"error",true);
+        }
+    }
+}

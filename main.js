@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require("fs");
 const url = require("url");
 const {exec} = require("child_process");
+const windowStateKeeper = require('electron-window-state')
 
 function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
 
@@ -54,7 +55,15 @@ function paddingStr(num,len) {
 
 function createWindow() {
 
+    let mainWindowState = windowStateKeeper({
+        defaultWidth: 1500,
+        defaultHeight: 800
+    });
     const mainWindow = new BrowserWindow({
+        x: mainWindowState.x,
+        y: mainWindowState.y,
+        width: mainWindowState.width,
+        height: mainWindowState.height,
         show: false,
         titleBarStyle: 'hidden',
         titleBarOverlay: true,
@@ -72,7 +81,7 @@ function createWindow() {
         icon: path.join(__dirname, './src/nvg.ico'),
     });
     // Create the browser window.
-
+    mainWindowState.manage(mainWindow);
     
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         return { action: 'allow', overrideBrowserWindowOptions: {
