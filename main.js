@@ -67,12 +67,12 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload_index.js'),
-            devTools: app.isPackaged?false:true,
+            //devTools: app.isPackaged?false:true,
         },
         icon: path.join(__dirname, './src/nvg.ico'),
     });
     // Create the browser window.
-    
+
     
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         return { action: 'allow', overrideBrowserWindowOptions: {

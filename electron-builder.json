@@ -1,0 +1,27 @@
+{
+    "appId": "neknaj.video_generator",
+    "productName": "Neknaj Video Generator",
+    "directories": {
+        "output": "out"
+    },
+    "files": [
+        "main.js",
+        "preload_index.js",
+        "package.json",
+        "sample.nvgl",
+        "src",
+        "node_modules/mermaid",
+        "node_modules/monaco-editor",
+        "node_modules/neknaj-jsonviewer",
+        "node_modules/nvgl"
+    ],
+    "win": {
+        "target": "nsis"
+    },
+    "mac": {
+        "target": "dmg"
+    },
+    "linux": {
+        "target": "AppImage"
+    }
+}  
