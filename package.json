@@ -8,11 +8,8 @@
     "start": "npm run updatelib && electron-forge start",
     "debug": "npm run updatelib && cross-env NODE_ENV=\"debug\" npm run start",
     "release": "npm run updatelib && cross-env NODE_ENV=\"release\" npm run start",
-    "package": "npm run updatelib && electron-forge package",
-    "make": "npm run updatelib && electron-forge make",
-    "publish": "npm run updatelib && electron-forge publish",
     "updatelib": "npm install && npm run make -prefix node_modules/nvgl",
-    "run":"cross-env NODE_ENV=\"debug\" electron-forge start"
+    "run": "cross-env NODE_ENV=\"debug\" electron-forge start"
   },
   "keywords": [],
   "author": {
@@ -36,7 +33,8 @@
     "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
     "cross-env": "^7.0.3",
     "electron": "^26.6.8",
-    "electron-forge": "^5.2.4"
+    "electron-forge": "^5.2.4",
+    "electron-builder": "^24.13.3"
   },
   "config": {
     "forge": {

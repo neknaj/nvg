@@ -13,7 +13,8 @@
         "node_modules/mermaid",
         "node_modules/monaco-editor",
         "node_modules/neknaj-jsonviewer",
-        "node_modules/nvgl"
+        "node_modules/nvgl/evalNVGL.js",
+        "node_modules/nvgl/pkg"
     ],
     "win": {
         "target": "nsis"
@@ -24,4 +25,4 @@
     "linux": {
         "target": "AppImage"
     }
-}  
+}
