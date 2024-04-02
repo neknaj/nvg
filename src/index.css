@@ -258,6 +258,7 @@ visibility: hidden !important;
     transform: scale(1);
     z-index: -10;
     & .object {
+        box-shadow: 0px 0px 2px 0px white;
         height: calc(30px *var(--tl-y-scale) - 4px);
         margin: 5px;
         padding: 2px;

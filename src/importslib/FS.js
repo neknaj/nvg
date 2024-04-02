@@ -15,26 +15,39 @@ const val = {
                     image.onerror = (e)=>{reject(e);}
                     image.src = `${ProjectInfo.dir}/resource/${args[0]}`;
                 }));
-            break;
             case "video":
                 return await (new Promise((resolve,reject) => {
                     const video = document.createElement("video");
-                    video.onloadeddata = () => {
+                    video.oncanplaythrough = () => {
                         resolve(video);
                     }
                     video.onerror = (e)=>{reject(e);}
                     video.src = `${ProjectInfo.dir}/resource/${args[0]}`;
                 }));
-            break;
+            case "audiobuffer":
+                {
+                    const res = await fetch(`${ProjectInfo.dir}/resource/${args[0]}`);
+                    const arr = await res.arrayBuffer();
+                    const buf = await audioCtx.decodeAudioData(arr);
+                    console.log(buf)
+                    console.log(buf.getChannelData(0))
+                    return buf;
+                }
+            case "audio":
+                return await (new Promise((resolve,reject) => {
+                    const audio = document.createElement("audio");
+                    audio.onerror = (e)=>{reject(e);}
+                    audio.src = `${ProjectInfo.dir}/resource/${args[0]}`;
+                    audio.oncanplaythrough = () => {
+                        console.log(audio.duration)
+                        resolve(audio);
+                    }
+                }));
             default:
                 console.warn("please set the type of file")
             break;
         }
         return;
-    },
-    getValue: (_,args)=>{
-        console.warn(NVGStrage[args[0]])
-        return NVGStrage[args[0]];
     },
 }
 

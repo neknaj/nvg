@@ -3,23 +3,23 @@ function init() {
 }
 
 const val = {
-    Image: (_,args)=>{ // image,href,x,y,scale
+    Image: (scope,args)=>{ // image,href,x,y,scale
         const [image,x,y,scale] = args;
         const canvas = document.createElement("canvas");
         const canvasctx = canvas.getContext("2d");
-        canvas.width = Project.scope.__size.width;
-        canvas.height = Project.scope.__size.height;
+        canvas.width = scope.__size.width;
+        canvas.height = scope.__size.height;
         canvasctx.scale(scale.x,scale.y);
         canvasctx.drawImage(image,x,y,image.width*scale.x,image.height*scale.y);
         return canvas;
     },
-    Video: (_,args)=>{ // video,href,x,y,scale,frame
+    Video: (scope,args)=>{ // video,href,x,y,scale,frame
         const [video,x,y,scale,frame] = args;
         const canvas = document.createElement("canvas");
         const canvasctx = canvas.getContext("2d");
         video.currentTime = args[4];
-        canvas.width = Project.scope.__size.width;
-        canvas.height = Project.scope.__size.height;
+        canvas.width = scope.__size.width;
+        canvas.height = scope.__size.height;
         canvasctx.scale(args[3].x,args[3].y);
         canvasctx.drawImage(video,args[1],args[2],video.videoWidth*args[3].x,video.videoHeight*args[3].y);
         return canvas;
