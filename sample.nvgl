@@ -6,11 +6,11 @@
 }
 @init {
     !return {
-        size: {
+        __size: {
             width:1920,
             height:1080,
         },
-        fps:30,
+        __fps:30,
     };
 }
 @obj Text {
@@ -57,7 +57,7 @@
     &range  {!return {start:start,length:len};}
     &tlconf {!return {text:"Text: " + text,color:color,textcolor:#000};}
     &frame(f) {
-        !return text -> String::slice(0,f*speed/fps)
+        !return text -> String::slice(0,f*speed/__fps)
                 -> SVG::LFText(x,y,size)
                 -> SVG::Font(font)
                 -> SVG::Fill(color)
@@ -85,10 +85,10 @@
     &range  {!return {start:start,length:len};}
     &tlconf {!return {text:"Text: " + text,color:color,textcolor:#000};}
     &frame(f) {
-        thresh_time <: text::length*fps/speed;
+        thresh_time <: text::length*__fps/speed;
         # Debug::print(out,len,f,len-f-1,Math::min(len-f-1,out)/out);
         !if (f>thresh_time) {
-            !return text -> String::slice(0,f*speed/fps)
+            !return text -> String::slice(0,f*speed/__fps)
                     -> SVG::LFText(x,y,size)
                     -> SVG::Font(font)
                     -> SVG::Fill(color)
@@ -97,7 +97,7 @@
                     -> SVG::addAttr("stroke-opacity",Math::normalize(1-(f-thresh_time)*0.05)*Math::min(len-f-1,out)/out);
         }
         else {
-            !return text -> String::slice(0,f*speed/fps)
+            !return text -> String::slice(0,f*speed/__fps)
                     -> SVG::LFText(x,y,size)
                     -> SVG::Font(font)
                     -> SVG::Stroke(borderColor,border)

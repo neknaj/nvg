@@ -206,8 +206,8 @@ var canvasScale = 0;
 function resize() {
     {
         let scale = 1.05**canvasScale;
-        const dw = videoConfig.size.width;
-        const dh = videoConfig.size.height;
+        const dw = videoConfig.__size.width;
+        const dh = videoConfig.__size.height;
         parent = imgOutArea.getBoundingClientRect();
         let ww = parent.width;
         let wh = parent.height;
@@ -534,7 +534,7 @@ async function export_frame(i=0,s,e) {
         }
         console.log(fname);
         window.electron.cleanExportFrame(s,i);
-        window.electron.composeVideo(s,i,Project.scope.fps,fname);
+        window.electron.composeVideo(s,i,Project.scope.__fps,fname);
         stopExporting = false;
     }
 }
@@ -544,7 +544,7 @@ var startFrame = 0;
 async function playPreview() {
     if (exporting) {setTimeout(playPreview,2000);return false;}
     updatePlayCtrl();
-    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*Project.scope.fps):currentFrame;
+    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*Project.scope.__fps):currentFrame;
     if (currentFrame>=Number(seekbar.max)) {currentFrame=Number(seekbar.max);playInterval=false;}
     const drawInfo = await drawFrame(currentFrame);
     FrameCache.className = "s"+drawInfo;
@@ -585,19 +585,19 @@ async function svg2image(svg){
         }
     )
 }
-async function svg2image(svg){
-    const image = new Image();
-    return new Promise(
-        (resolve) => {
-            image.onload = () => {
-                URL.revokeObjectURL(image.src);
-                resolve(image);
-            }
-            abcde = image;
-            image.src = URL.createObjectURL(new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
-        }
-    )
-}
+// async function svg2image(svg){
+//     const image = new Image();
+//     return new Promise(
+//         (resolve) => {
+//             image.onload = () => {
+//                 URL.revokeObjectURL(image.src);
+//                 resolve(image);
+//             }
+//             abcde = image;
+//             image.src = URL.createObjectURL(new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
+//         }
+//     )
+// }
 
 let timeLineTmp;
 let lastObjFrame = 0;
@@ -625,14 +625,14 @@ let drawFrame = async (f)=>{
         //console.table(f,objects)
         // 描画する
         let bufco = document.createElement("canvas");
-        bufco.height = Project.scope.size.height;
-        bufco.width = Project.scope.size.width;
+        bufco.height = Project.scope.__size.height;
+        bufco.width = Project.scope.__size.width;
         bufco.style = imgout.style;
         bufco.id = imgout.id;
 
         let ctx = bufco.getContext("2d");
         ctx.fillStyle = "black";
-        ctx.rect(0,0,Project.scope.size.width,Project.scope.size.height);
+        ctx.rect(0,0,Project.scope.__size.width,Project.scope.__size.height);
         ctx.fill();
         for (let obj of objects) {
             try {
@@ -640,9 +640,9 @@ let drawFrame = async (f)=>{
                 start=performance.now()
                 if (res instanceof SVGElement) {
                     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-                    svg.setAttribute("viewBox",`0 0 ${Project.scope.size.width} ${Project.scope.size.height}`)
-                    svg.setAttribute("width",Project.scope.size.width);
-                    svg.setAttribute("height",Project.scope.size.height);
+                    svg.setAttribute("viewBox",`0 0 ${Project.scope.__size.width} ${Project.scope.__size.height}`)
+                    svg.setAttribute("width",Project.scope.__size.width);
+                    svg.setAttribute("height",Project.scope.__size.height);
                     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
                     g.appendChild(res);
                     svg.appendChild(g);
@@ -659,7 +659,7 @@ let drawFrame = async (f)=>{
             }
             catch (e) {console.warn(e);}
         }
-        imgoutctx.putImageData(ctx.getImageData(0,0,Project.scope.size.width,Project.scope.size.height),0,0)
+        imgoutctx.putImageData(ctx.getImageData(0,0,Project.scope.__size.width,Project.scope.__size.height),0,0)
         beforeImgdata = f;
 
         const fendT = performance.now();
@@ -676,8 +676,8 @@ async function InitCode() {
     makeTLObject(Project.timeline);
     console.log("Project",Project)
     videoConfig = Project.scope;
-    imgout.height = videoConfig.size.height;
-    imgout.width = videoConfig.size.width;
+    imgout.height = videoConfig.__size.height;
+    imgout.width = videoConfig.__size.width;
     resize();
     beforeImgdata = null;
     SetWindowTitle();
