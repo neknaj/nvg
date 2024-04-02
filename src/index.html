@@ -673,8 +673,8 @@ let drawFrame = async (f)=>{
 var Project;
 async function InitCode() {
     Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
+    console.log("Project",Project);
     makeTLObject(Project.timeline);
-    console.log("Project",Project)
     videoConfig = Project.scope;
     imgout.height = videoConfig.__size.height;
     imgout.width = videoConfig.__size.width;
