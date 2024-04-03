@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Neknaj Video Generator</title>
+        <link rel="stylesheet" href="index.old.css" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net;" />
+        <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp" />
+        <script src="logarea.js"></script>
+        <script src="index.old.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/monaco-editor/min/vs/loader.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/neknaj-jsonviewer/jsonviewer.css" />
+        <script src="https://cdn.jsdelivr.net/npm/neknaj-jsonviewer/jsonviewer.js"></script>
+        <link rel="stylesheet" href="logarea.css" />
+    </head>
+    <body>
+        <div id="topbar">
+            <div>
+                <img src="./nvg.png">
+            </div>
+            <div>
+                <button type="button" id="openfile">Open File</button>
+                <button type="button" id="savefileas">Save As</button>
+                <button type="button" id="sidearea">Side Area</button>
+                <div>
+                    <input type="checkbox" switch id="autosave" checked><label for="autosave">Auto Save</label>
+                </div>
+            </div>
+            <div>
+                <span id="title">　</span>
+            </div>
+        </div>
+        <div id="mainarea" class="resizer_Hcontainer" style="height: calc(100% - 26px);">
+            <div class="resizer_content" style="flex-basis: 100%;">
+                <div class="resizer_Vcontainer" style="height: 100%;">
+                    <div class="resizer_content" style="flex-basis: 80%;">
+                        <div class="resizer_Hcontainer" style="height: 100%;">
+                            <div class="resizer_content" style="flex-basis: 60%;" id="imgOutArea">
+                                <div class="imgOutWindow">
+                                    <div id="timebar_padding" class="imgOutArea">
+                                        <div id="imgOutPadding"></div>
+                                        <canvas id="imgOut" style="transform: scale(0,0);"></canvas>
+                                    </div>
+                                    <div id="timebar">
+                                        <input id="playbutton" type="radio"><label for="playbutton" id="playbuttonlabel">&#x23ef;</label>
+                                        <span id="currentFrame">0</span>
+                                        <span id="procTime">0</span>
+                                        <span id="FrameCache">■</span>
+                                        <input type="range" id="seekbar" value="0" min="0" max="1000" step="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="resizer_splitter"></div>
+                            <div class="resizer_content" style="flex-basis: 40%;">
+                                <button onclick="InitCode()" style="height: 20px;">Update</button>
+                                <div id="editor" style="height: calc(100% - 20px)"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="resizer_splitter"></div>
+                    <div class="resizer_content" style="flex-basis: 20%;">
+                        <div id="timelinearea">
+                            <div id="timeline" style="width: calc( 1000px *var(--tl-x-scale))">
+                                <div id="tl_timebar" style="left:calc( var(--current-frame)*var(--tl-x-scale)*1px);"></div>
+                                <div id="tl_objects">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="resizer_splitter"></div>
+            <div class="resizer_content" style="flex-basis: 0%;"><div id="logarea"></div></div>
+        </div>
+        <div id="subarea" data-open="close" data-loc="left">
+            <div class="resizer_Vcontainer" style="height: 100%;">
+                <div class="resizer_content" style="flex-basis: 40%;">
+                    <div id="partialexport">
+                        <h2>Export</h2>
+                        <button id="export">Export</button>
+                        <button id="cancelexport">Cancel Export</button>
+                        <h3>Partial export</h3>
+                        <table>
+                            <tr>
+                                <td><label for="export_range_start">start:</label></td>
+                                <td><input type="number" id="export_range_start" min="0" value="0" onchange="checkExportrange()"></td>
+                                <td><button onclick="export_range_start.value=0">first frame</button></td>
+                                <td><button onclick="export_range_start.value=currentFrame">current playback position</button></td>
+                                <td><button onclick="export_range_start.value=lastObjFrame">last frame</button></td>
+                            </tr>
+                            <tr>
+                                <td><label for="export_range_end">end:</label></td>
+                                <td><input type="number" id="export_range_end" min="0" value="0" onchange="checkExportrange()"></td>
+                                <td><button onclick="export_range_end.value=0">first frame</button></td>
+                                <td><button onclick="export_range_end.value=currentFrame">current playback position</button></td>
+                                <td><button onclick="export_range_end.value=lastObjFrame">last frame</button></td>
+                            </tr>
+                        </table>
+                        <h3>When export is complete</h3>
+                        <div>
+                            <input type="checkbox" switch id="autoopenself"><label for="autosave">Open in NVG</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" switch id="autoopendefault"><label for="autosave">Open in default app</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="resizer_splitter"></div>
+                <div class="resizer_content" style="flex-basis: 60%;">
+                    <div>
+                        <h2>Export Explorer</h2>
+                        <button onclick="window.electron.openPathDefault('./');">Open in explorer</button>
+                        <button onclick="window.electron.getFolder('.')">🔄</button>
+                        <table id="exportexplorer"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+<script>
+function resizer_Vcontainer_addEL (container,framesMin,resizerW,callback=()=>{}) {
+    container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
+        let resize = (e)=>{
+            let containerRect = container.getBoundingClientRect();
+            let y = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.y-containerRect.y,framesMin,containerRect.height-resizerW-framesMin);
+            container.querySelectorAll(":scope > .resizer_content")[0].style.flexBasis = `${y}%`;
+            container.querySelectorAll(":scope > .resizer_content")[1].style.flexBasis = `${containerRect.height-resizerW-y}%`;
+            callback();
+        }
+        document.addEventListener("mousemove",resize,false);
+        document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+    });
+}
+function resizer_Hcontainer_addEL (container,framesMin,resizerW,callback=()=>{}) {
+    container.querySelector(":scope > .resizer_splitter").addEventListener("mousedown",(e)=>{
+        let resize = (e)=>{
+            let containerRect = container.getBoundingClientRect();
+            let x = ((n,min,max)=>{if (n<min) {n=min}else if (n>max) {n=max};return n;})(e.x-containerRect.x,framesMin,containerRect.width-resizerW-framesMin);
+            container.querySelectorAll(":scope > .resizer_content")[0].style.flexBasis = `${x}%`;
+            container.querySelectorAll(":scope > .resizer_content")[1].style.flexBasis = `${containerRect.width-resizerW-x}%`;
+            callback();
+        }
+        document.addEventListener("mousemove",resize,false);
+        document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+    });
+}
+</script>
+<script>
+
+var editor;
+var ProjectInfo = {
+    path: null,
+    name: null,
+    dir: null,
+}
+
+function SetWindowTitle() {
+    document.title = [
+        "Neknaj Video Generator",
+        data2string(ProjectInfo.name?.name),
+        data2string(ProjectInfo.dir),
+    ].join(" ")
+    document.getElementById("title").innerText = [
+        data2string(ProjectInfo.name?.name),
+        data2string(ProjectInfo.dir),
+    ].join("　");
+}
+
+function updateEditorData(data) {
+    input.setValue(data);
+    InitCode();
+    SetWindowTitle();
+}
+
+function data2string(data) {
+    if (typeof data=="string") {
+        return "\""+data+"\"";
+    }
+    else {
+        return data;
+    }
+}
+
+
+function sleep(time) {new Promise(resolve=>setTimeout(resolve,time))}
+
+document.getElementById("openfile").onclick = (e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    window.electron.openFile();
+}
+document.getElementById("savefileas").onclick = (e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    window.electron.saveAs(input.getValue());
+}
+let autosave = document.getElementById("autosave");
+
+var exporting = false;
+var stopExporting = false;
+
+var imgout = document.getElementById("imgOut");
+
+let imgOutArea = document.getElementById("imgOutArea");
+// resize window
+var canvasScale = 0;
+function resize() {
+    {
+        let scale = 1.05**canvasScale;
+        const dw = videoConfig.__size.width;
+        const dh = videoConfig.__size.height;
+        parent = imgOutArea.getBoundingClientRect();
+        let ww = parent.width;
+        let wh = parent.height;
+        {
+            let ws = (ww-30)/dw;
+            let hs = (wh-30-30)/dh;
+            //console.log(ws,hs)
+            scale *= Math.min(ws,hs);
+        }
+        imgOutPadding.style.width = `${dw*scale+20}px`;
+        imgOutPadding.style.height = `${dh*scale+20}px`;
+        if (dw*scale+20<=ww&&dh*scale+20<=wh) {
+            imgout.style.transform = "translate(-50%,-50%) scale("+scale.toString()+","+scale.toString()+")";
+            imgout.style.transformOrigin = "center center";
+            imgout.style.left = "50%";
+            imgout.style.top = "50%";
+        }
+        else {
+            imgout.style.transform = "scale("+scale.toString()+","+scale.toString()+")";
+            imgout.style.transformOrigin = "top left";
+            imgout.style.left = "10px";
+            imgout.style.top = "10px";
+        }
+    }
+    {
+        TimelineArea.style.setProperty('--tl-timebar-height',
+            Math.max(TimelineArea.getBoundingClientRect().height-2)+"px"
+        );
+    }
+};
+window.onresize = resize;
+window.onload = async ()=>{
+    await initnvgl();
+    await initEditor();
+    Previewzero();
+    window.electron.onload();
+    playInterval = true;
+};
+
+var nvgl,ScopeMarker,input;
+async function initnvgl() {
+    nvgl = {}
+    {
+        const module = await import("../node_modules/nvgl/pkg/nvgl.js");
+        await module.default();
+        module._start?module._start():module.main?module.main():(()=>{console.warn(`Entry point not Found: _start() or main()`)})();
+        nvgl.parser = module;
+    }
+    {
+        const module = await import("../node_modules/nvgl/evalNVGL.js");
+        nvgl.init = module.init;
+    }
+    {
+        const module = await import("../node_modules/nvgl/astgraphNVGL.js");
+        await module.init("https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.esm.mjs");
+        nvgl.astgraph = module.default;
+        ScopeMarker = module.ScopeMarker;
+    }
+}
+async function initEditor() {
+
+    require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor/min/vs" } });
+
+    require(["vs/editor/editor.main"], async function () {
+        const module = await import("../node_modules/nvgl/nvgl_highlight.js");
+        monaco.languages.register({ id: "nvgl" });
+
+        monaco.languages.setMonarchTokensProvider("nvgl", module.tokenizer);
+        monaco.editor.defineTheme("nvgl-dark", module.theme);
+
+        input = monaco.editor.create(document.querySelector("#editor"),{
+            language: "nvgl",
+            readOnly: false,
+            theme: "nvgl-dark",
+            roundedSelection: true,
+            lineNumbers: "on",
+            automaticLayout: true,
+            fontSize: 10,
+        });
+        input.getModel().onDidChangeContent((e)=>{
+            // requestAnimationFrame(update); // for debug
+            ScopeMarker(0,0);
+            if (autosave.checked&&ProjectInfo.path!=null) {
+                window.electron.saveFile(ProjectInfo.path,input.getValue());
+            }
+        })
+        input.setValue(fRead("../sample.nvgl"));
+        await InitCode();
+    });
+}
+function fRead(filename) {
+    var hr = new XMLHttpRequest();
+    hr.open("GET", filename, false);
+    hr.send(null);
+    if (hr.status == 200 || hr.status == 304) {
+        return hr.responseText.replace(/\r\n/g, "\n");
+    }
+    else {
+        throw "err " + filename;
+    }
+};
+</script>
+<script> /* Timeline */
+let TimelineArea = document.getElementById("timelinearea");
+let Timeline = document.getElementById("timeline");
+let TimelineObjects = document.getElementById("tl_objects");
+let TimelineScale = [0,0,0.7,0.8];
+TimelineArea.addEventListener("wheel",(e)=>{
+    if (e.ctrlKey&&!e.shiftKey) { // x軸の拡大縮小
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {TimelineScale[0]++;}else {TimelineScale[0]--;}
+        if (TimelineScale[0]>20) {TimelineScale[0]=20}
+        else if (TimelineScale[0]<-20) {TimelineScale[0]=-20}
+       // console.log(TimelineScale);
+        TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+        TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
+    }
+    else if (e.ctrlKey&&e.shiftKey) { // y軸の拡大縮小
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {TimelineScale[1]++;}else {TimelineScale[1]--;}
+        if (TimelineScale[1]>20) {TimelineScale[1]=20}
+        else if (TimelineScale[1]<-10) {TimelineScale[1]=-10}
+      //  console.log(TimelineScale);
+        TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+        TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
+    }
+    else {
+    }
+})
+TimelineArea.onscroll = ()=>{updatePlayCtrl()};
+imgOutArea.addEventListener("wheel",(e)=>{
+    if (e.ctrlKey) {
+        e.preventDefault();
+        let wheelval = e.deltaY;
+        if (e.deltaY>0) {canvasScale--;}else {canvasScale++;}
+        if (canvasScale>50) {canvasScale=50}
+        else if (canvasScale<-50) {canvasScale=-50}
+        resize();
+    }
+})
+
+</script>
+<script>
+document.querySelectorAll(".resizer_Vcontainer").forEach((x)=>{resizer_Vcontainer_addEL(x,0,10,resize);})
+document.querySelectorAll(".resizer_Hcontainer").forEach((x)=>{resizer_Hcontainer_addEL(x,0,10,resize);})
+</script>
+<script> /* keyboard */
+document.onkeydown = (e)=>{
+    let subarea = document.getElementById("subarea");
+    console.log(e.ctrlKey,e.shiftKey,e.keyCode)
+    if (e.ctrlKey&&(!e.shiftKey)&&e.keyCode==66) {
+        if (subarea.dataset.open=="open") {
+            subarea.dataset.open = "close";
+        }
+        else {
+            subarea.dataset.open = "open";
+        }
+    }
+    if (e.ctrlKey&&e.shiftKey&&e.keyCode==66&&subarea.dataset.open=="open") {
+        if (subarea.dataset.loc=="right") {
+            subarea.dataset.loc = "left";
+        }
+        else {
+            subarea.dataset.loc = "right";
+        }
+    }
+    if (exporting) {e.preventDefault();return false;}
+    if (e.keyCode==32&&!input.hasTextFocus()) {
+        togglePlayPreview();
+    }
+    if (!e.shiftKey&&e.keyCode==39) {
+        currentFrame++;
+        startTime = Date.now();
+        startFrame = currentFrame;
+        updatePlayCtrl();
+    }
+    if (!e.shiftKey&&e.keyCode==37) {
+        currentFrame--;
+        startTime = Date.now();
+        startFrame = currentFrame;
+        updatePlayCtrl();
+    }
+    if (e.keyCode == 82 && e.ctrlKey && !e.shiftKey) {
+        requestAnimationFrame(InitCode);
+        e.preventDefault();
+    }
+}
+</script>
+<script>
+
+var currentFrame = 0;
+let seekbar = document.querySelector("#seekbar");
+let currentFrameShow = document.querySelector("#currentFrame");
+let TimeLineTimeBar = document.querySelector("#tl_timebar");
+let playbutton = document.querySelector("#playbutton");
+seekbar.addEventListener("input",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    currentFrame = Number(seekbar.value);
+        startTime = Date.now();
+        startFrame = currentFrame;
+    updatePlayCtrl();
+})
+seekbar.addEventListener("change",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    currentFrame = Number(seekbar.value);
+        startTime = Date.now();
+        startFrame = currentFrame;
+    updatePlayCtrl();
+})
+TimeLineTimeBar.addEventListener("mousedown",(e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    let resize = (e)=>{
+        let ex = e.x - TimelineArea.getBoundingClientRect().left+ TimelineArea.scrollLeft;
+        let x = ex/(TimelineScale[2]**TimelineScale[0]);
+        if (x<0) {x=0};
+        if (x>=Number(seekbar.max)) {x=Number(seekbar.max)};
+        currentFrame = Math.round(x);
+        startTime = Date.now();
+        startFrame = currentFrame;
+        updatePlayCtrl();
+    }
+    document.addEventListener("mousemove",resize,false);
+    document.addEventListener("mouseup",()=>{document.removeEventListener("mousemove",resize,false);},false);
+});
+
+function Previewzero() {
+    currentFrame = 0;
+        startTime = Date.now();
+        startFrame = currentFrame;
+    updatePlayCtrl();
+}
+function updatePlayCtrl(f=currentFrame) {
+    if (f<0) {f=0};
+    if (f>=Number(seekbar.max)) {f=Number(seekbar.max)};
+    f = Math.round(Number(f));
+    seekbar.value = f;
+    currentFrameShow.innerText = f;
+    TimelineArea.style.setProperty('--tl-scroll-x',TimelineArea.scrollLeft);
+    TimelineArea.style.setProperty('--current-frame',f);
+}
+
+var playInterval = false;
+playbutton.addEventListener("click",()=>{
+    if (exporting) {e.preventDefault();return false;}
+    TimelineArea.focus();
+    togglePlayPreview();
+})
+function togglePlayPreview() {
+    if (currentFrame>=Number(seekbar.max)) {currentFrame=0;}
+        startTime = Date.now();
+        startFrame = currentFrame;
+    if (playInterval==false) {
+        playInterval = true;
+    }
+    else {
+        playInterval = false;
+    }
+}
+
+document.getElementById("export").addEventListener("click",async (e)=>{
+    if (exporting) {e.preventDefault();return false;}
+    if (ProjectInfo.path==null) {console.warn("project file not selected");return false;}
+    ExportFrame();
+    stopExporting = false;
+})
+document.getElementById("cancelexport").addEventListener("click",async (e)=>{
+    if (!exporting) {console.warn("not exporting")};
+    stopExporting = true;
+})
+document.getElementById("sidearea").addEventListener("click",async (e)=>{
+    if (subarea.dataset.open=="open") {
+        subarea.dataset.open = "close";
+    }
+    else {
+        subarea.dataset.open = "open";
+    }
+})
+var export_range_start = document.querySelector('#export_range_start');
+var export_range_end = document.querySelector('#export_range_end');
+function ExportFrame() {
+    exporting = true;
+    input.updateOptions({readOnly:true});
+    playInterval = false;
+    checkExportrange();
+    let start = Math.floor(Number(export_range_start.value));
+    let end = Math.floor(Number(export_range_end.value));
+    window.electron.cleanExportFrame(start,end);
+    procTime.innerText = "-";
+    FrameCache.className = "s4";
+    export_frame(start,start,end);
+}
+function checkExportrange() {
+    let start = Math.floor(Number(export_range_start.value));
+    let end = Math.floor(Number(export_range_end.value));
+    if (start<0) {start=0}
+    if (end>lastObjFrame) {end=lastObjFrame}
+    if (end<start) {end=start}
+    export_range_start.value = Math.round(start);
+    export_range_end.value = Math.round(end);
+}
+async function export_frame(i=0,s,e) {
+    exporting = true;
+    beforesource.stop();
+    let drawInfo = await drawFrame(i);
+    updatePlayCtrl(i);
+    imgout.toBlob((blob)=>{
+        let reader = new FileReader();
+        reader.readAsArrayBuffer(blob);
+        reader.onload = ()=> {
+            //console.log("export",i);
+            window.electron.exportFrame(i,new Uint8Array(reader.result));
+        }
+    });
+    if (i<e&&!stopExporting) {
+        requestAnimationFrame(()=>{export_frame(i+1,s,e)});
+    }
+    else {
+    input.updateOptions({readOnly:false});
+        exporting = false;
+        let fname = "";
+        if (s!=0||i!=lastObjFrame) {
+            fname = `_${s}-${i}`;
+        }
+        console.log(fname);
+        window.electron.cleanExportFrame(s,i);
+        window.electron.composeVideo(s,i,Project.scope.__fps,fname);
+        stopExporting = false;
+    }
+}
+
+var startTime = Date.now();
+var startFrame = 0;
+async function playPreview() {
+    if (exporting) {setTimeout(playPreview,2000);return false;}
+    updatePlayCtrl();
+    currentFrame = playInterval?Math.floor(startFrame+(Date.now()-startTime)/1000*Project.scope.__fps):currentFrame;
+    if (currentFrame>=Number(seekbar.max)) {currentFrame=Number(seekbar.max);playInterval=false;}
+    const drawInfo = await drawFrame(currentFrame);
+    FrameCache.className = "s"+drawInfo;
+    playsound();
+    if (playInterval) {
+        requestAnimationFrame(playPreview);
+    }
+    else {
+        beforesource.stop();
+        startTime = Date.now();
+        startFrame = currentFrame;
+        setTimeout(playPreview,100);
+    }
+}
+setTimeout(playPreview,1000)
+
+</script>
+<script> // TimeLine Objects
+
+
+async function canvas2image(canvas){
+    const image = new Image();
+    return new Promise(
+        (resolve) => {
+            image.onload = () => {
+                resolve(image);
+            }
+            image.src = canvas.toDataURL();
+        }
+    )
+}
+async function svg2image(svg){
+    const image = new Image();
+    return new Promise(
+        (resolve) => {
+            image.onload = () => {
+                resolve(image);
+            }
+            image.src = "data:image/svg+xml;charset=utf-8;base64," + btoa(unescape(encodeURIComponent(new XMLSerializer().serializeToString(svg))));
+        }
+    )
+}
+// async function svg2image(svg){
+//     const image = new Image();
+//     return new Promise(
+//         (resolve) => {
+//             image.onload = () => {
+//                 URL.revokeObjectURL(image.src);
+//                 resolve(image);
+//             }
+//             abcde = image;
+//             image.src = URL.createObjectURL(new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n`+new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
+//         }
+//     )
+// }
+
+let timeLineTmp;
+let lastObjFrame = 0;
+let TimelineA;
+let TLTs = 20;
+let beforeImgdata = null;
+let FrameCache = document.querySelector("#FrameCache");
+let procTime = document.querySelector("#procTime");
+let imgoutctx = imgout.getContext("2d");
+let drawFrame = async (f)=>{
+    if (f<0) {return 0}
+    if (f>lastObjFrame) {return 0}
+    if (beforeImgdata==f) {
+        //return 0;
+    }
+    {
+        const fstartT = performance.now();
+        let objects = [];
+        for (let layer=0;layer<TLTs;layer++) { // 現在のフレームにあるオブジェクトを探す
+            //console.log((lastObjFrame+1)*layer+f,f,timeLineTmp[(lastObjFrame+1)*layer+f])
+            if (timeLineTmp[(lastObjFrame+1)*layer+f]!=0) {
+                objects.push(Project.timeline[timeLineTmp[(lastObjFrame+1)*layer+f]-1]);
+            }
+        }
+        //console.table(f,objects)
+        // 描画する
+        let bufco = document.createElement("canvas");
+        bufco.height = Project.scope.__size.height;
+        bufco.width = Project.scope.__size.width;
+        bufco.style = imgout.style;
+        bufco.id = imgout.id;
+
+        let ctx = bufco.getContext("2d");
+        ctx.fillStyle = "black";
+        ctx.rect(0,0,Project.scope.__size.width,Project.scope.__size.height);
+        ctx.fill();
+        for (let obj of objects) {
+            try {
+                const res = await obj.frameFunc(f-obj.range.start);
+                start=performance.now()
+                if (res instanceof SVGElement) {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+                    svg.setAttribute("viewBox",`0 0 ${Project.scope.__size.width} ${Project.scope.__size.height}`)
+                    svg.setAttribute("width",Project.scope.__size.width);
+                    svg.setAttribute("height",Project.scope.__size.height);
+                    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+                    g.appendChild(res);
+                    svg.appendChild(g);
+                    ctx.drawImage(await svg2image(svg),0,0);
+                }
+                else if (res instanceof HTMLCanvasElement) {
+                    ctx.drawImage(res,0,0);
+                }
+                else if (res==false) {
+                }
+                else {
+                    console.warn("unknown result",res);
+                }
+                end=performance.now()
+                //console.log(end-start)
+            }
+            catch (e) {console.warn(e);}
+        }
+        imgoutctx.putImageData(ctx.getImageData(0,0,Project.scope.__size.width,Project.scope.__size.height),0,0)
+        beforeImgdata = f;
+
+        const fendT = performance.now();
+        procTime.innerText = Math.floor((fendT-fstartT)*10)/10;
+        return 4;
+        // co.toBlob((blob)=>{console.link(URL.createObjectURL(blob))});
+    }
+}
+
+
+var Project;
+const audioCtx = new AudioContext();
+var beforesource = {stop:()=>{}};
+var audiobuffer;
+var playsound_before_startTime = null;
+async function InitCode() {
+    Project = await nvgl.init(JSON.parse(nvgl.parser.ParseNVGL(input.getValue())).res,"inline",{},input.getValue(),new URL("./importslib/",location.href).href);
+    debug.print(Project);
+    makeTLObject(Project.timeline);
+    makeAudio(Project.timeline);
+    videoConfig = Project.scope;
+    imgout.height = videoConfig.__size.height;
+    imgout.width = videoConfig.__size.width;
+    resize();
+    beforeImgdata = null;
+    startTime = Date.now();
+    startFrame = currentFrame;
+    SetWindowTitle();
+}
+function playsound() {
+    if (!playInterval||startTime==playsound_before_startTime) {return true;}
+    console.log("a")
+    playsound_before_startTime = startTime;
+    const time = currentFrame/Project.scope.__fps;
+    const start = time*audioCtx.sampleRate;
+    const audiolength = Math.ceil(lastObjFrame*audioCtx.sampleRate/Project.scope.__fps);
+    const buffer = new AudioBuffer({
+        numberOfChannels: 2,
+        length: audiolength-start,
+        sampleRate: audioCtx.sampleRate,
+    });
+    for (let c = 0; c < 2; c++) {
+        const output = buffer.getChannelData(c);
+        const input = audiobuffer.getChannelData(c);
+        for (let i = 0; i < audiolength-start; i++) {
+            output[i] += input[start+i];
+        }
+    }
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+    beforesource.stop();
+    beforesource = source;
+    console.log("b")
+};
+
+
+function makeTLObject(timeline) {
+    // last obj frame
+    let partialexportUpdate = false;
+    if (export_range_end.value==lastObjFrame) {partialexportUpdate=true;}
+    lastObjFrame = 0;
+    for (let obj of timeline) { // 各オブジェクトの長さを取得
+        console.log(obj)
+        let objlen = obj.range.length;
+        if (obj.range.start+objlen>lastObjFrame) {
+            lastObjFrame = obj.range.start+objlen-1;
+        }
+    }
+    if (partialexportUpdate) {
+        export_range_end.value = lastObjFrame;
+    }
+    export_range_start.max = lastObjFrame;
+    export_range_end.max = lastObjFrame;
+    //
+    Timeline.style = `width: calc( ${lastObjFrame+10}px *var(--tl-x-scale))`;
+    seekbar.max = lastObjFrame;
+    timeLineTmp = new Uint32Array((lastObjFrame+1)*TLTs).fill(0);
+    let searchLayer = (obj)=>{ // オブジェクトを置くべきレイヤーを探す
+        let layer = 0;
+        while (layer<TLTs) {
+            let flag = true;
+            for (let x=0;x<obj.range.length;x++) {
+                if (timeLineTmp[(lastObjFrame+1)*layer+obj.range.start+x]!=0) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag) {
+                return layer;
+            }
+            layer++;
+        }
+        return false;
+    }
+    let setObj = (obj,layer,id)=>{ // timeLineTmpとオブジェクトを更新
+        for (let x=0;x<obj.range.length;x++) {
+            timeLineTmp[(lastObjFrame+1)*layer+obj.range.start+x]=id+1;
+        }
+        obj.layer = layer;
+        obj.id = id;
+    }
+    for (let id in timeline) { // オブジェクトのレイヤーを決定
+        id = Number(id);
+        let obj = timeline[id];
+        let layer = searchLayer(obj);
+        setObj(obj,layer,id);
+    }
+    console.table(timeline)
+    const defaulttlconf = {
+        backgroundcolor: "#fff",
+        textcolor: "#000",
+    }
+    const tag = "obj"+Date.now()+"ver";
+    for (let obj of timeline) { // 実際のタイムラインに表示する
+        const objstyle = `background-color: ${obj.tlconf.color??defaulttlconf.backgroundcolor};color: ${obj.tlconf.textcolor??defaulttlconf.textcolor};`
+        console.log(objstyle)
+        let divelm = document.createElement("div");
+        divelm.classList.add("object");
+        divelm.classList.add(tag);
+        divelm.style = objstyle+`left:calc( ${obj.range.start}px *var(--tl-x-scale));top:calc(${obj.layer} *(30px*var(--tl-y-scale) + 5px));width: calc( ${obj.range.length-0.1}px *var(--tl-x-scale) - 4px)`;
+        divelm.innerText = obj.tlconf.text??obj.type;
+        TimelineObjects.appendChild(divelm);
+        obj.tlelm = divelm;
+    }
+    console.log(timeline)
+    TimelineObjects.querySelectorAll("."+TimelineObjects.dataset.tag).forEach((x)=>{x.remove()});
+    TimelineObjects.dataset.tag = tag;
+    TimelineArea.style.setProperty('--tl-x-scale',TimelineScale[2]**TimelineScale[0]);
+    TimelineArea.style.setProperty('--tl-y-scale',TimelineScale[3]**TimelineScale[1]);
+    console.log(lastObjFrame)
+}
+function makeAudio(timeline) {
+    console.log("make audio")
+    console.log(lastObjFrame)
+    const audiolength = Math.ceil(lastObjFrame*audioCtx.sampleRate/Project.scope.__fps);
+    const buffer = new AudioBuffer({
+        numberOfChannels: 2,
+        length: audiolength,
+        sampleRate: audioCtx.sampleRate,
+    });
+    for (obj of timeline) {
+        if (obj.audio==null) {continue;}
+        console.log(obj.audio,obj)
+        const start = obj.range.start/Project.scope.__fps*audioCtx.sampleRate;
+        const length = obj.range.length/Project.scope.__fps*audioCtx.sampleRate;
+        const speed = obj.audio.sampleRate/audioCtx.sampleRate;
+        if (obj.audio.numberOfChannels==1) {
+            const output1 = buffer.getChannelData(0);
+            const output2 = buffer.getChannelData(1);
+            const input = obj.audio.getChannelData(0);
+            for (let i = 0; i < length; i++) {
+                output1[start+i] += input[Math.round(i*speed)];
+                output2[start+i] += input[Math.round(i*speed)];
+            }
+        }
+        else {
+            for (let c = 0; c < 2; c++) {
+                const output = buffer.getChannelData(c);
+                const input = obj.audio.getChannelData(c);
+                for (let i = 0; i < length; i++) {
+                    output[start+i] += input[Math.round(i*speed)];
+                }
+            }
+        }
+    }
+    audiobuffer = buffer;
+}
+
+var TLstat;
+
+</script>
+<script> // explorer
+
+
+function ExportsExplorer(result) {
+    let exportexplorer = document.querySelector("#exportexplorer");
+    exportexplorer.innerHTML = "";
+    for (let item of result) {
+        if (item[0].ext==".mp4") {
+            let trelm = document.createElement("tr");
+            exportexplorer.appendChild(trelm);
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                ldelm.innerText = item[0].base;
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in NVG";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathSelf("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in default app";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathDefault("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+            {
+                let ldelm = document.createElement("td");
+                trelm.appendChild(ldelm);
+                let buttonelm = document.createElement("button");
+                buttonelm.innerText = "Open in explorer";
+                buttonelm.onclick = ()=>{
+                    window.electron.openPathExplorer("./"+item[0].base);
+                }
+                trelm.appendChild(buttonelm);
+            }
+        }
+    }
+}
+
+</script>

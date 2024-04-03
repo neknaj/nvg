@@ -1,15 +1,15 @@
 {
   "name": "neknaj_video_generator",
   "product_name": "Neknaj Video Generator",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "description": "テキストデータを元に動画を生成するソフト",
   "main": "main.js",
   "scripts": {
+    "install": "npm install",
+    "install-src": "npm --prefix ./src install ./src",
     "start": "electron-forge start",
     "debug": "cross-env NODE_ENV=\"debug\" npm run start",
-    "release": "cross-env NODE_ENV=\"release\" npm run start",
-    "make": "npm run updatelib && npx electron-builder",
-    "updatelib": "npm install && npm run make -prefix node_modules/nvgl"
+    "make": "npx electron-builder"
   },
   "keywords": [],
   "author": {
@@ -20,9 +20,6 @@
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",
     "electron-window-state": "^5.0.3",
-    "mermaid": "^10.9.0",
-    "monaco-editor": "^0.46.0",
-    "neknaj-jsonviewer": "^1.1.0",
     "nvgl": "github:neknaj/nvgl"
   },
   "devDependencies": {
@@ -32,6 +29,7 @@
     "@electron-forge/maker-squirrel": "^6.4.2",
     "@electron-forge/maker-zip": "^6.4.2",
     "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
+    "asar": "^3.2.0",
     "cross-env": "^7.0.3",
     "electron": "^26.6.8",
     "electron-builder": "^24.13.3",

@@ -16,3 +16,9 @@ NVGL
 
 ## ダウンロード
 https://github.com/neknaj/nvg/releases/latest
+
+# コマンド
+```bash
+npm install
+npm run make
+```
